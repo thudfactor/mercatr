@@ -5,6 +5,7 @@
   "type": "module",
   "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
+    "start": "tsx src/server/index.ts",
     "cli": "tsx src/cli.ts",
     "serve": "tsx src/server/index.ts"
   },

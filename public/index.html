@@ -20,20 +20,40 @@
     header {
       padding: 1.5rem 2rem;
       border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    header h1 {
+    .header-text h1 {
       font-size: 1.25rem;
       font-weight: 600;
       letter-spacing: 0.05em;
       color: #fff;
     }
 
-    header p {
+    .header-text p {
       font-size: 0.85rem;
       color: #666;
       margin-top: 0.2rem;
     }
+
+    #history-btn {
+      background: none;
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      color: #888;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0.45rem 0.85rem;
+      white-space: nowrap;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    #history-btn:hover:not(:disabled) { color: #ccc; border-color: #444; }
+    #history-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    #history-count { color: #666; }
 
     main {
       flex: 1;
@@ -196,7 +216,8 @@
       transition: background 0.15s;
     }
 
-    .download-btn:hover { background: #223322; }
+    .download-btn:hover:not(:disabled) { background: #223322; }
+    .download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     dialog {
       background: #1a1a1a;
@@ -238,13 +259,221 @@
 
     .dialog-actions button:hover { background: #333; }
 
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #e8e8e8;
+      font-size: 0.875rem;
+      padding: 0.75rem 1rem;
+      z-index: 200;
+      max-width: 320px;
+    }
+
+    #toast.toast-error { border-color: #5a3a3a; color: #e8a0a0; }
+
+    /* History drawer */
+    #history-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: 360px;
+      background: #141414;
+      border-left: 1px solid #2a2a2a;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      visibility: hidden;
+    }
+
+    #history-drawer.open {
+      transform: translateX(0);
+      visibility: visible;
+    }
+
+    #drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+
+    .drawer-header h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #e8e8e8;
+    }
+
+    .drawer-close {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 1.4rem;
+      line-height: 1;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      transition: color 0.15s;
+    }
+
+    .drawer-close:hover { color: #ccc; }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #history-list-view {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    #session-list-container { flex: 1; }
+
+    #session-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    #session-list li {
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    #session-list li button {
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 0.875rem;
+      padding: 0.75rem 1.25rem;
+      text-align: left;
+      width: 100%;
+      transition: background 0.1s;
+    }
+
+    #session-list li button:hover { background: #1e1e1e; color: #fff; }
+
+    .drawer-empty {
+      color: #666;
+      font-size: 0.875rem;
+      padding: 2rem 1.25rem;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .drawer-settings {
+      border-top: 1px solid #2a2a2a;
+      padding: 1rem 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .drawer-settings p {
+      color: #666;
+      font-size: 0.8rem;
+      margin-bottom: 0.6rem;
+      min-height: 1em;
+    }
+
+    .clear-btn {
+      background: none;
+      border: 1px solid #3a2a2a;
+      border-radius: 4px;
+      color: #a06060;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.75rem;
+      transition: background 0.15s;
+    }
+
+    .clear-btn:hover { background: #2a1a1a; }
+
+    /* Session detail */
+    #history-detail-view {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .detail-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+
+    .detail-back {
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0;
+      margin-bottom: 0.6rem;
+      display: block;
+      transition: color 0.15s;
+    }
+
+    .detail-back:hover { color: #ccc; }
+
+    .detail-header h3 {
+      color: #e8e8e8;
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .detail-meta {
+      color: #666;
+      font-size: 0.8rem;
+    }
+
+    .detail-content {
+      padding: 0 1.25rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .detail-content .results {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .detail-actions {
+      padding: 0.75rem 1.25rem 1.25rem;
+      flex-shrink: 0;
+      border-top: 1px solid #2a2a2a;
+    }
+
     [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Mercatr</h1>
-    <p>Thematic playlist generator</p>
+    <div class="header-text">
+      <h1>Mercatr</h1>
+      <p>Thematic playlist generator</p>
+    </div>
+    <button type="button" id="history-btn" aria-expanded="false" aria-haspopup="true">
+      History<span id="history-count" aria-hidden="true"></span>
+    </button>
   </header>
 
   <main>
@@ -324,10 +553,160 @@
     </div>
   </dialog>
 
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+
+  <aside id="history-drawer" aria-label="Session history" inert>
+    <div class="drawer-header">
+      <h2>History</h2>
+      <button type="button" id="drawer-close" class="drawer-close" aria-label="Close history">×</button>
+    </div>
+    <div id="drawer-body" class="drawer-body">
+      <div id="history-list-view">
+        <div id="session-list-container"></div>
+        <div class="drawer-settings">
+          <p id="storage-info"></p>
+          <button type="button" id="clear-history-btn" class="clear-btn" hidden>Clear History</button>
+        </div>
+      </div>
+      <div id="history-detail-view" hidden>
+        <div class="detail-header">
+          <button type="button" id="detail-back" class="detail-back">← Back</button>
+          <h3 id="detail-name"></h3>
+          <p id="detail-meta" class="detail-meta"></p>
+        </div>
+        <div class="detail-content">
+          <div id="detail-results" class="results"></div>
+        </div>
+        <div class="detail-actions">
+          <button type="button" id="detail-download" class="download-btn">Download XSPF</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="drawer-backdrop" hidden></div>
+
   <script>
+    // === LocalStorage availability ===
+    let storageAvailable = false;
+    (function () {
+      try {
+        const key = '__mercatr_test__';
+        localStorage.setItem(key, '1');
+        localStorage.getItem(key);
+        localStorage.removeItem(key);
+        storageAvailable = true;
+      } catch {
+        storageAvailable = false;
+      }
+    })();
+
+    // === Storage service ===
+    const STORAGE_KEY = 'mercatr:sessions';
+    const SESSION_LIMIT = 50;
+
+    function enforceRetentionLimit(sessions, limit = SESSION_LIMIT) {
+      return sessions.slice(0, limit);
+    }
+
+    function loadSessions() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        console.warn('mercatr: failed to parse session history from storage');
+        return [];
+      }
+    }
+
+    function saveSession(session) {
+      try {
+        const existing = loadSessions();
+        const updated = enforceRetentionLimit([session, ...existing], SESSION_LIMIT);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        return { success: true };
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          return { success: false, error: 'storage_full' };
+        }
+        return { success: false, error: 'unknown' };
+      }
+    }
+
+    function clearSessions() {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function estimateStorageUsed() {
+      const raw = localStorage.getItem(STORAGE_KEY) ?? '';
+      return new Blob([raw]).size;
+    }
+
+    // === Session naming ===
+    function toTitleCase(str) {
+      return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+    }
+
+    function computeDisplayName(mode, inputs) {
+      const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (mode === 'artist') return `Artist: ${toTitleCase(inputs.artist)} — ${date}`;
+      if (mode === 'theme') return `Theme: ${toTitleCase(inputs.theme)} — ${date}`;
+      return `${toTitleCase(inputs.artistFrom)} → ${toTitleCase(inputs.artistTo)} — ${date}`;
+    }
+
+    // === Element refs ===
     const tabs = document.querySelectorAll('[role="tab"]');
     const panels = document.querySelectorAll('[role="tabpanel"]');
+    const correctionNotice = document.getElementById('correction-notice');
+    const resultsEl = document.getElementById('results');
+    const actionsEl = document.getElementById('actions');
+    const downloadBtn = document.getElementById('download-xspf');
+    const errorDialog = document.getElementById('error-dialog');
+    const errorMessage = document.getElementById('error-message');
+    const errorClose = document.getElementById('error-close');
+    const historyBtn = document.getElementById('history-btn');
+    const historyCount = document.getElementById('history-count');
+    const toast = document.getElementById('toast');
+    const drawer = document.getElementById('history-drawer');
+    const drawerBody = document.getElementById('drawer-body');
+    const drawerBackdrop = document.getElementById('drawer-backdrop');
+    const drawerClose = document.getElementById('drawer-close');
+    const historyListView = document.getElementById('history-list-view');
+    const historyDetailView = document.getElementById('history-detail-view');
+    const detailBack = document.getElementById('detail-back');
+    const detailDownload = document.getElementById('detail-download');
 
+    let lastResponse = null;
+    let lastTitle = null;
+    let toastTimer = null;
+    let savedScrollTop = 0;
+    let currentDetailSession = null;
+
+    // === Toast ===
+    function showToast(message, isError = false) {
+      if (toastTimer) clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.classList.toggle('toast-error', isError);
+      toast.hidden = false;
+      toastTimer = setTimeout(() => { toast.hidden = true; }, 3000);
+    }
+
+    // === History count badge ===
+    function updateHistoryCount() {
+      if (!storageAvailable) return;
+      const count = loadSessions().length;
+      historyCount.textContent = count > 0 ? ` (${count})` : '';
+    }
+
+    // === Error dialog ===
+    errorClose.addEventListener('click', () => errorDialog.close());
+
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorDialog.showModal();
+    }
+
+    // === Tab switching ===
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         tabs.forEach(t => t.setAttribute('aria-selected', 'false'));
@@ -338,24 +717,7 @@
       });
     });
 
-    const correctionNotice = document.getElementById('correction-notice');
-    const resultsEl = document.getElementById('results');
-    const actionsEl = document.getElementById('actions');
-    const downloadBtn = document.getElementById('download-xspf');
-    const errorDialog = document.getElementById('error-dialog');
-    const errorMessage = document.getElementById('error-message');
-    const errorClose = document.getElementById('error-close');
-
-    let lastResponse = null;
-    let lastTitle = null;
-
-    errorClose.addEventListener('click', () => errorDialog.close());
-
-    function showError(msg) {
-      errorMessage.textContent = msg;
-      errorDialog.showModal();
-    }
-
+    // === Results ===
     function clearResults() {
       correctionNotice.hidden = true;
       resultsEl.hidden = true;
@@ -364,7 +726,7 @@
       lastTitle = null;
     }
 
-    function showResults(data, title) {
+    function showResults(data, title, mode, inputs) {
       lastResponse = data.response;
       lastTitle = title;
 
@@ -384,6 +746,25 @@
       resultsEl.innerHTML = marked.parse(data.response);
       resultsEl.hidden = false;
       actionsEl.hidden = false;
+
+      if (storageAvailable && mode && inputs) {
+        const session = {
+          id: crypto.randomUUID(),
+          mode,
+          inputs,
+          playlist: [],
+          commentary: data.response,
+          createdAt: new Date().toISOString(),
+          displayName: computeDisplayName(mode, inputs),
+        };
+        const result = saveSession(session);
+        if (result.success) {
+          showToast('Session saved to history.');
+          updateHistoryCount();
+        } else if (result.error === 'storage_full') {
+          showToast("Couldn't save session — storage full. Clear your history in Settings to free space.", true);
+        }
+      }
     }
 
     function setLoading(form, loading) {
@@ -392,7 +773,7 @@
       btn.textContent = loading ? 'Generating…' : 'Generate';
     }
 
-    async function submitForm(endpoint, body, title) {
+    async function submitForm(endpoint, body, title, mode, inputs) {
       clearResults();
       const activeForm = document.querySelector('.active form');
       setLoading(activeForm, true);
@@ -411,7 +792,7 @@
           return;
         }
 
-        showResults(data, title);
+        showResults(data, title, mode, inputs);
       } catch {
         showError('Network error. Please try again.');
       } finally {
@@ -427,34 +808,33 @@
       e.preventDefault();
       const artist = e.target.artist.value.trim();
       const track = e.target.track.value.trim();
-      submitForm('/api/explore', { artist, ...(track ? { track } : {}) }, artist);
+      submitForm('/api/explore', { artist, ...(track ? { track } : {}) }, artist, 'artist', { artist });
     });
 
     document.getElementById('form-bridge').addEventListener('submit', e => {
       e.preventDefault();
       const from = e.target.from.value.trim();
       const to = e.target.to.value.trim();
-      submitForm('/api/bridge', { from, to }, `${from} → ${to}`);
+      submitForm('/api/bridge', { from, to }, `${from} → ${to}`, 'transition', { artistFrom: from, artistTo: to });
     });
 
     document.getElementById('form-theme').addEventListener('submit', e => {
       e.preventDefault();
       const theme = e.target.theme.value.trim();
       const seedArtist = e.target.seedArtist.value.trim();
-      submitForm('/api/theme', { theme, ...(seedArtist ? { seedArtist } : {}) }, theme);
+      submitForm('/api/theme', { theme, ...(seedArtist ? { seedArtist } : {}) }, theme, 'theme', { theme });
     });
 
-    downloadBtn.addEventListener('click', async () => {
-      if (!lastResponse || !lastTitle) return;
-
-      downloadBtn.disabled = true;
-      downloadBtn.textContent = 'Extracting…';
+    // === XSPF download (shared) ===
+    async function downloadXspf(responseText, title, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Extracting…';
 
       try {
         const res = await fetch('/api/xspf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ response: lastResponse, title: lastTitle }),
+          body: JSON.stringify({ response: responseText, title }),
         });
 
         if (!res.ok) {
@@ -473,10 +853,151 @@
       } catch {
         showError('Failed to download XSPF.');
       } finally {
-        downloadBtn.disabled = false;
-        downloadBtn.textContent = 'Download XSPF';
+        btn.disabled = false;
+        btn.textContent = 'Download XSPF';
+      }
+    }
+
+    downloadBtn.addEventListener('click', function () {
+      if (!lastResponse || !lastTitle) return;
+      downloadXspf(lastResponse, lastTitle, this);
+    });
+
+    detailDownload.addEventListener('click', function () {
+      if (!currentDetailSession) return;
+      downloadXspf(currentDetailSession.commentary, currentDetailSession.displayName, this);
+    });
+
+    // === History drawer ===
+    function openDrawer() {
+      drawer.classList.add('open');
+      drawer.removeAttribute('inert');
+      drawerBackdrop.hidden = false;
+      historyBtn.setAttribute('aria-expanded', 'true');
+      renderSessionList();
+      drawerClose.focus();
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('open');
+      drawer.setAttribute('inert', '');
+      drawerBackdrop.hidden = true;
+      historyBtn.setAttribute('aria-expanded', 'false');
+      historyBtn.focus();
+    }
+
+    historyBtn.addEventListener('click', openDrawer);
+    drawerClose.addEventListener('click', closeDrawer);
+    drawerBackdrop.addEventListener('click', closeDrawer);
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+    });
+
+    drawer.addEventListener('keydown', e => {
+      if (e.key !== 'Tab') return;
+      const focusable = [...drawer.querySelectorAll(
+        'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )].filter(el => !el.closest('[hidden]'));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
       }
     });
+
+    // === Session list ===
+    function renderSessionList() {
+      const sessions = loadSessions();
+
+      historyListView.hidden = false;
+      historyDetailView.hidden = true;
+
+      const storageInfo = document.getElementById('storage-info');
+      const clearBtn = document.getElementById('clear-history-btn');
+
+      if (sessions.length > 0) {
+        const kb = Math.round(estimateStorageUsed() / 1024);
+        storageInfo.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'} · ~${kb}KB used`;
+        clearBtn.hidden = false;
+      } else {
+        storageInfo.textContent = '';
+        clearBtn.hidden = true;
+      }
+
+      const container = document.getElementById('session-list-container');
+
+      if (sessions.length === 0) {
+        container.innerHTML = '<p class="drawer-empty">No sessions saved yet. Complete a mode run to save your first session.</p>';
+        return;
+      }
+
+      const ol = document.createElement('ol');
+      ol.id = 'session-list';
+
+      sessions.forEach(session => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = session.displayName;
+        btn.dataset.sessionId = session.id;
+        btn.addEventListener('click', () => {
+          savedScrollTop = drawerBody.scrollTop;
+          renderSessionDetail(session);
+        });
+        li.appendChild(btn);
+        ol.appendChild(li);
+      });
+
+      container.innerHTML = '';
+      container.appendChild(ol);
+    }
+
+    // === Session detail ===
+    function formatMeta(session) {
+      if (session.mode === 'artist') return `Artist exploration · ${session.inputs.artist}`;
+      if (session.mode === 'theme') return `Theme · ${session.inputs.theme}`;
+      return `Transition · ${session.inputs.artistFrom} → ${session.inputs.artistTo}`;
+    }
+
+    function renderSessionDetail(session) {
+      currentDetailSession = session;
+      historyListView.hidden = true;
+      historyDetailView.hidden = false;
+
+      document.getElementById('detail-name').textContent = session.displayName;
+      document.getElementById('detail-meta').textContent = formatMeta(session);
+      document.getElementById('detail-results').innerHTML = marked.parse(session.commentary);
+
+      drawerBody.scrollTop = 0;
+      detailBack.focus();
+    }
+
+    detailBack.addEventListener('click', () => {
+      historyListView.hidden = false;
+      historyDetailView.hidden = true;
+      currentDetailSession = null;
+      drawerBody.scrollTop = savedScrollTop;
+    });
+
+    // === Clear history ===
+    document.getElementById('clear-history-btn').addEventListener('click', () => {
+      if (!confirm('Clear all session history? This cannot be undone.')) return;
+      clearSessions();
+      updateHistoryCount();
+      renderSessionList();
+    });
+
+    // === Init ===
+    if (!storageAvailable) {
+      historyBtn.disabled = true;
+      historyBtn.title = 'History unavailable in this browser context.';
+    } else {
+      updateHistoryCount();
+    }
   </script>
 </body>
 </html>
