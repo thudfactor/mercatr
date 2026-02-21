@@ -28,6 +28,31 @@ LASTFM_API_KEY=your_lastfm_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ```
 
+## Web interface
+
+Mercatr also runs as a local web server with a browser UI that exposes all three query modes.
+
+### Running the server
+
+```bash
+npm run serve
+```
+
+Then open `http://localhost:3000`. The browser will prompt for a username and password (set via `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` in `.env`).
+
+The web interface supports all three query modes — explore, bridge, and theme — and lets you download results as an XSPF playlist file directly from the browser.
+
+### Additional environment variables
+
+Add these to your `.env` before running the server:
+
+```bash
+BASIC_AUTH_USER=your_username_here
+BASIC_AUTH_PASSWORD=your_password_here
+```
+
+The server will refuse to start if either variable is missing.
+
 ## Commands
 
 ### `explore` — Explore an artist or song
@@ -236,3 +261,6 @@ ls logs/
 | `ANTHROPIC_MODEL` | No | `claude-sonnet-4-20250514` | Default model for all LLM calls |
 | `LASTFM_CACHE_TTL_HOURS` | No | `24` | Cache TTL (accepts decimals, e.g. `0.5` for 30 min) |
 | `MIN_TAG_COUNT` | No | `10` | Filters out noisy low-count tags from Last.fm |
+| `BASIC_AUTH_USER` | Web only | — | Username for Basic Auth (required by `npm run serve`) |
+| `BASIC_AUTH_PASSWORD` | Web only | — | Password for Basic Auth (required by `npm run serve`) |
+| `PORT` | No | `3000` | Port the web server listens on |
