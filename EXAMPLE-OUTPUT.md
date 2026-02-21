@@ -9,8 +9,8 @@ Translating theme to folksonomy tags...
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Gathering Last.fm data...
 Last.fm summary: Top artists for tag: 115, Top tracks for tag: 125
-# Playlist: "Ambivalence About Love"
 ```
+# Playlist: "Ambivalence About Love"
 
 1. **The Microphones – "The Glow Pt. 2"** (2001)
 2. **Joni Mitchell – "A Case of You"** (1971)
