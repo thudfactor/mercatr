@@ -27,7 +27,7 @@ function addSharedFlags(cmd: Command): Command {
     .option('--verbose', 'Print assembled Last.fm context to stderr')
     .option('--dry-run', 'Print full prompt without calling the LLM')
     .option('--no-cache', 'Bypass Last.fm cache for this run')
-    .option('--model <model>', 'Override the Claude model')
+    .option('--model <model>', 'Override the LLM model')
     .option('--template <path>', 'Override the prompt template file path')
     .option('--expand', 'Use expanded genre diversity mode')
     .option('--export [path]', 'Export playlist as XSPF file (optional path, defaults to playlist-{timestamp}.xspf)');
