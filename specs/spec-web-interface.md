@@ -129,6 +129,7 @@ All routes accept POST with a JSON body and return JSON. All routes should handl
 ### Shared response shape
 
 **Success:**
+
 ```json
 {
   "response": "<LLM markdown string>",
@@ -138,6 +139,7 @@ All routes accept POST with a JSON body and return JSON. All routes should handl
 ```
 
 **Error:**
+
 ```json
 {
   "error": "Artist not found: Blorpus McFee. No close matches found.",
@@ -152,6 +154,7 @@ All routes accept POST with a JSON body and return JSON. All routes should handl
 **POST /api/explore**
 
 Request body:
+
 ```json
 {
   "artist": "Elliott Smith",
@@ -160,6 +163,7 @@ Request body:
 ```
 
 Implementation steps:
+
 1. Validate that `artist` is present; return 400 if missing.
 2. Instantiate `LastfmClient` with `{ noCache: false }`.
 3. Call `checkArtistConfidence(artist, client)`.
@@ -177,6 +181,7 @@ Implementation steps:
 **POST /api/bridge**
 
 Request body:
+
 ```json
 {
   "from": "Nick Drake",
@@ -185,6 +190,7 @@ Request body:
 ```
 
 Implementation steps:
+
 1. Validate that both `from` and `to` are present; return 400 if either is missing.
 2. Instantiate `LastfmClient`.
 3. Run `checkArtistConfidence` on both artists in parallel (`Promise.all`).
@@ -201,6 +207,7 @@ Implementation steps:
 **POST /api/theme**
 
 Request body:
+
 ```json
 {
   "theme": "loneliness in crowded places",
@@ -209,6 +216,7 @@ Request body:
 ```
 
 Implementation steps:
+
 1. Validate that `theme` is present; return 400 if missing.
 2. Instantiate `LastfmClient`.
 3. If `seedArtist` is provided, run `checkArtistConfidence`. Apply same low/medium confidence logic as explore route.
@@ -226,6 +234,7 @@ Implementation steps:
 This route takes the LLM response text, extracts a track list, builds XSPF, and returns the file as a download.
 
 Request body:
+
 ```json
 {
   "response": "<full LLM response markdown string>",
@@ -234,14 +243,17 @@ Request body:
 ```
 
 Implementation steps:
+
 1. Validate that `response` and `title` are present.
 2. Call `extractTracks(response)` — this uses the haiku model to pull structured track data from the LLM output.
 3. Call `buildXspf(tracks, title)` — returns an XSPF XML string.
 4. Set response headers:
+
    ```
    Content-Type: application/xspf+xml
    Content-Disposition: attachment; filename="playlist.xspf"
    ```
+
 5. Send the XSPF string as the response body.
 
 Note: Do not call `writeXspf` — that's for filesystem writes in the CLI. Use `buildXspf` and send the result directly.
@@ -257,17 +269,23 @@ A single self-contained HTML file. No build step, no bundler. Vanilla JS with `f
 Three-panel or tabbed interface for the three modes: **Explore**, **Bridge**, **Theme**. One mode is active at a time. Below the mode selector is a form whose fields change based on the selected mode. Below the form is a results area.
 
 ### Mode: Explore
+
 Fields:
+
 - Artist (text input, required)
 - Track (text input, optional) — label: "Specific track (optional)"
 
 ### Mode: Bridge
+
 Fields:
+
 - From (text input, required) — label: "Starting artist"
 - To (text input, required) — label: "Destination artist"
 
 ### Mode: Theme
+
 Fields:
+
 - Theme (text input, required) — label: "Theme or mood"
 - Seed artist (text input, optional) — label: "Seed artist (optional)"
 
@@ -290,6 +308,7 @@ Use the native HTML `<dialog>` element for error display.
 - **Validation errors:** Inline form validation (HTML5 `required` attribute is sufficient for the alpha).
 
 Pattern:
+
 ```html
 <dialog id="error-dialog">
   <p id="error-message"></p>
@@ -309,25 +328,30 @@ document.getElementById('error-close').addEventListener('click', () => {
 
 ---
 
-## Deployment: Render
+## Deployment: Railway
 
 ### Setup steps
 
 1. Push the repo to GitHub.
-2. Create a new **Web Service** on Render, connected to the GitHub repo.
-3. Set the following in the Render dashboard:
+2. Create a new project on [Railway](https://railway.app), connected to the GitHub repo.
+3. Railway will auto-detect Node.js. Set the following in the Railway dashboard under **Variables**:
+   - `LASTFM_API_KEY`
+   - `ANTHROPIC_API_KEY`
+   - `BASIC_AUTH_USER`
+   - `BASIC_AUTH_PASSWORD`
+4. Under **Settings → Deploy**, set:
    - **Build command:** `npm install`
    - **Start command:** `npm run serve`
-   - **Environment variables:** `LASTFM_API_KEY`, `ANTHROPIC_API_KEY`, `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD`
-   - **Instance type:** Free tier is sufficient for alpha.
+5. Railway exposes a `PORT` environment variable automatically — the server already reads `process.env.PORT` so no changes needed.
 
 ### Filesystem note
 
-Render's free tier has an ephemeral filesystem — cache and logs written to disk will be lost on each deploy or restart. This is acceptable for the alpha. If cache persistence becomes important, revisit by adding a Redis cache layer or upgrading to a Render persistent disk.
+Railway's filesystem is ephemeral — cache and logs written to disk will be lost on each deploy or restart. This is acceptable for the alpha. If cache persistence becomes important, revisit by adding a Redis cache layer or a Railway Volume (their persistent disk offering).
 
 ### `.gitignore` additions
 
 Ensure the following are ignored:
+
 ```
 .env
 .cache/
