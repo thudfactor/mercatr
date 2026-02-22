@@ -33,6 +33,23 @@ Finally, suggest a **5-song path** between the two artists that could function a
 {{expandModeRequirement}}
 The path need not include songs by either artist, though it can.
 
+---
+
+After your response, append the following delimiter on its own line, followed immediately by a JSON array of every track you recommended:
+
+---TRACKS---
+[
+  { "artist": "Artist Name", "track": "Track Title", "album": "Album Title", "year": "YYYY" }
+]
+
+Rules for the JSON block:
+- Include every track you recommended, in the order they appear in your response
+- Use the exact artist name and track title as written in your response
+- Provide `album` and `year` to the best of your knowledge; use an empty string if uncertain
+- Do not include tracks that appear only as contextual references, only tracks you are recommending
+- Return valid JSON — no trailing commas, no comments
+- Nothing should appear after the closing bracket
+
 ---diversity-baseline---
 ## Genre Diversity Check
 

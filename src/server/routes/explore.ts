@@ -3,6 +3,7 @@ import { LastfmClient } from '../../lastfm/client.js';
 import { checkArtistConfidence } from '../../llm/artistConfidence.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
+import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 
 const router = Router();
 
@@ -26,11 +27,14 @@ router.post('/', async (req, res) => {
     const resolvedName = result.resolvedName ?? artist;
     const query = { type: 'explore' as const, artist: resolvedName, ...(track ? { track } : {}) };
     const context = await buildContext(client, query);
-    const { response } = await runQuery(context, { expand: false, voice });
+    const { response: raw } = await runQuery(context, { expand: false, voice });
+    const { narrative, tracks, warning } = parseTracksFromResponse(raw);
+    if (warning) process.stderr.write(`[explore] ${warning}\n`);
 
     const corrected = resolvedName.toLowerCase() !== artist.toLowerCase();
     res.json({
-      response,
+      response: narrative,
+      tracks,
       ...(corrected ? { resolvedArtist: resolvedName, originalInput: artist } : {}),
     });
   } catch (err) {

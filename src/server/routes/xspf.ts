@@ -1,28 +1,27 @@
 import { Router } from 'express';
-import { extractTracks } from '../../llm/trackExtract.js';
+import type { TrackInfo } from '../../llm/trackExtract.js';
 import { buildXspf } from '../../export/xspf.js';
 
 const router = Router();
 
-router.post('/', async (req, res) => {
-  const { response, title } = req.body as { response?: string; title?: string };
+router.post('/', (req, res) => {
+  const { tracks, title } = req.body as { tracks?: TrackInfo[]; title?: string };
 
-  if (!response || !title) {
-    res.status(400).json({ error: 'response and title are required' });
+  if (!Array.isArray(tracks) || tracks.length === 0) {
+    res.status(400).json({ error: 'tracks must be a non-empty array' });
     return;
   }
 
-  try {
-    const tracks = await extractTracks(response);
-    const xml = buildXspf(tracks, { title });
-
-    res.setHeader('Content-Type', 'application/xspf+xml');
-    res.setHeader('Content-Disposition', 'attachment; filename="playlist.xspf"');
-    res.send(xml);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    res.status(500).json({ error: message });
+  if (!title || typeof title !== 'string' || title.trim() === '') {
+    res.status(400).json({ error: 'title is required' });
+    return;
   }
+
+  const xml = buildXspf(tracks, { title });
+
+  res.setHeader('Content-Type', 'application/xspf+xml');
+  res.setHeader('Content-Disposition', 'attachment; filename="playlist.xspf"');
+  res.send(xml);
 });
 
 export default router;

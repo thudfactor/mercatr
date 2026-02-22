@@ -11,6 +11,8 @@ const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 export interface TrackInfo {
   artist: string;
   track: string;
+  album: string;
+  year: string;
 }
 
 export async function extractTracks(

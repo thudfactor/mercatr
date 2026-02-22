@@ -242,6 +242,44 @@
     .download-btn:hover:not(:disabled) { background: #223322; }
     .download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    .track-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 1.25rem;
+      border-top: 1px solid #2a2a2a;
+      padding-top: 1rem;
+    }
+
+    .track-list li {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding: 0.3rem 0;
+      font-size: 0.85rem;
+      color: #888;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .track-list li:last-child { border-bottom: none; }
+
+    .track-num {
+      color: #555;
+      font-size: 0.75rem;
+      min-width: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .track-title a {
+      color: #bbb;
+      text-decoration: none;
+    }
+
+    .track-title a:hover { color: #fff; text-decoration: underline; }
+
+    .track-artist { color: #777; }
+
+    .track-meta { color: #555; font-size: 0.78rem; margin-left: auto; white-space: nowrap; }
+
     dialog {
       background: #1a1a1a;
       border: 1px solid #333;
@@ -787,6 +825,7 @@
     const detailDownload = document.getElementById('detail-download');
 
     let lastResponse = null;
+    let lastTracks = null;
     let lastTitle = null;
     let toastTimer = null;
     let waitingSongInterval = null;
@@ -859,11 +898,49 @@
       resultsEl.hidden = true;
       actionsEl.hidden = true;
       lastResponse = null;
+      lastTracks = null;
       lastTitle = null;
+      downloadBtn.disabled = true;
+    }
+
+    function buildTrackList(tracks) {
+      const ol = document.createElement('ol');
+      ol.className = 'track-list';
+      ol.setAttribute('aria-label', 'Recommended tracks');
+      tracks.forEach((t, i) => {
+        const li = document.createElement('li');
+        const num = document.createElement('span');
+        num.className = 'track-num';
+        num.textContent = `${i + 1}.`;
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'track-title';
+        const a = document.createElement('a');
+        a.href = `https://www.last.fm/music/${encodeURIComponent(t.artist)}/_/${encodeURIComponent(t.track)}`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = t.track;
+        titleSpan.appendChild(a);
+        const artistSpan = document.createElement('span');
+        artistSpan.className = 'track-artist';
+        artistSpan.textContent = `— ${t.artist}`;
+        const parts = [t.album, t.year].filter(Boolean);
+        li.appendChild(num);
+        li.appendChild(titleSpan);
+        li.appendChild(artistSpan);
+        if (parts.length > 0) {
+          const meta = document.createElement('span');
+          meta.className = 'track-meta';
+          meta.textContent = parts.join(' · ');
+          li.appendChild(meta);
+        }
+        ol.appendChild(li);
+      });
+      return ol;
     }
 
     function showResults(data, title, mode, inputs) {
       lastResponse = data.response;
+      lastTracks = data.tracks ?? null;
       lastTitle = title;
 
       if (data.resolvedArtist) {
@@ -880,8 +957,12 @@
       }
 
       resultsEl.innerHTML = marked.parse(data.response);
+      if (lastTracks && lastTracks.length > 0) {
+        resultsEl.appendChild(buildTrackList(lastTracks));
+      }
       resultsEl.hidden = false;
       actionsEl.hidden = false;
+      downloadBtn.disabled = !lastTracks;
 
       if (storageAvailable && mode && inputs) {
         const session = {
@@ -889,6 +970,7 @@
           mode,
           inputs,
           playlist: [],
+          tracks: lastTracks,
           commentary: data.response,
           createdAt: new Date().toISOString(),
           displayName: computeDisplayName(mode, inputs),
@@ -967,15 +1049,15 @@
     });
 
     // === XSPF download (shared) ===
-    async function downloadXspf(responseText, title, btn) {
+    async function downloadXspf(tracks, title, btn) {
       btn.disabled = true;
-      btn.textContent = 'Extracting…';
+      btn.textContent = 'Downloading…';
 
       try {
         const res = await fetch('/api/xspf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ response: responseText, title }),
+          body: JSON.stringify({ tracks, title }),
         });
 
         if (!res.ok) {
@@ -994,19 +1076,19 @@
       } catch {
         showError('Failed to download XSPF.');
       } finally {
-        btn.disabled = false;
+        btn.disabled = !lastTracks;
         btn.textContent = 'Download XSPF';
       }
     }
 
     downloadBtn.addEventListener('click', function () {
-      if (!lastResponse || !lastTitle) return;
-      downloadXspf(lastResponse, lastTitle, this);
+      if (!lastTracks || !lastTitle) return;
+      downloadXspf(lastTracks, lastTitle, this);
     });
 
     detailDownload.addEventListener('click', function () {
-      if (!currentDetailSession) return;
-      downloadXspf(currentDetailSession.commentary, currentDetailSession.displayName, this);
+      if (!currentDetailSession?.tracks) return;
+      downloadXspf(currentDetailSession.tracks, currentDetailSession.displayName, this);
     });
 
     // === History drawer ===
@@ -1112,6 +1194,7 @@
       document.getElementById('detail-name').textContent = session.displayName;
       document.getElementById('detail-meta').textContent = formatMeta(session);
       document.getElementById('detail-results').innerHTML = marked.parse(session.commentary);
+      detailDownload.disabled = !session.tracks;
 
       drawerBody.scrollTop = 0;
       detailBack.focus();
