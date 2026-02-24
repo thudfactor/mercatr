@@ -3,11 +3,12 @@ import { LastfmClient } from '../../lastfm/client.js';
 import { checkArtistConfidence } from '../../llm/artistConfidence.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
+import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 
 const router = Router();
 
 router.post('/', async (req, res) => {
-  const { from, to } = req.body as { from?: string; to?: string };
+  const { from, to, voice } = req.body as { from?: string; to?: string; voice?: string };
 
   if (!from || !to) {
     res.status(400).json({ error: 'from and to are required' });
@@ -35,13 +36,16 @@ router.post('/', async (req, res) => {
 
     const query = { type: 'bridge' as const, fromArtist: resolvedFrom, toArtist: resolvedTo };
     const context = await buildContext(client, query);
-    const { response } = await runQuery(context, { expand: false });
+    const { response: raw } = await runQuery(context, { expand: false, voice });
+    const { narrative, tracks, warning } = parseTracksFromResponse(raw);
+    if (warning) process.stderr.write(`[bridge] ${warning}\n`);
 
     const fromCorrected = resolvedFrom.toLowerCase() !== from.toLowerCase();
     const toCorrected = resolvedTo.toLowerCase() !== to.toLowerCase();
 
     res.json({
-      response,
+      response: narrative,
+      tracks,
       ...((fromCorrected || toCorrected) ? {
         resolvedArtist: [resolvedFrom, resolvedTo],
         originalInput: [from, to],

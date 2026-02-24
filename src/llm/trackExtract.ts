@@ -9,6 +9,8 @@ export const TRACK_EXTRACT_TEMPLATE_PATH = path.resolve(__dirname, '../../prompt
 export interface TrackInfo {
   artist: string;
   track: string;
+  album: string;
+  year: string;
 }
 
 export async function extractTracks(

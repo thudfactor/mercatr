@@ -4,11 +4,12 @@ import { checkArtistConfidence } from '../../llm/artistConfidence.js';
 import { runThemeTranslation } from '../../llm/themeTranslate.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
+import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 
 const router = Router();
 
 router.post('/', async (req, res) => {
-  const { theme, seedArtist } = req.body as { theme?: string; seedArtist?: string };
+  const { theme, seedArtist, voice } = req.body as { theme?: string; seedArtist?: string; voice?: string };
 
   if (!theme) {
     res.status(400).json({ error: 'theme is required' });
@@ -40,12 +41,15 @@ router.post('/', async (req, res) => {
     };
 
     const context = await buildContext(client, query);
-    const { response } = await runQuery(context, { expand: false });
+    const { response: raw } = await runQuery(context, { expand: false, voice });
+    const { narrative, tracks, warning } = parseTracksFromResponse(raw);
+    if (warning) process.stderr.write(`[theme] ${warning}\n`);
 
     const seedCorrected = resolvedSeed && seedArtist && resolvedSeed.toLowerCase() !== seedArtist.toLowerCase();
 
     res.json({
-      response,
+      response: narrative,
+      tracks,
       ...(seedCorrected ? { resolvedArtist: resolvedSeed, originalInput: seedArtist } : {}),
     });
   } catch (err) {
