@@ -4,6 +4,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { auth } from './auth.js';
+import { resolveLlmSettings } from '../llm/provider.js';
 import exploreRouter from './routes/explore.js';
 import bridgeRouter from './routes/bridge.js';
 import themeRouter from './routes/theme.js';
@@ -21,6 +22,11 @@ app.use(auth);
 app.use(express.json());
 
 app.get('/api/voices', (_, res) => res.json(voicesManifest));
+
+app.get('/api/config', (_, res) => {
+  const { provider, model } = resolveLlmSettings();
+  res.json({ provider, model });
+});
 
 app.use(express.static(publicDir));
 

@@ -32,7 +32,6 @@ export async function runThemeTranslation(
 
   const completion = await generateText({
     model,
-    usage: 'main',
     maxTokens: 512,
     systemPrompt: template.system,
     userPrompt,

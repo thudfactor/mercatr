@@ -1,18 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 export type LlmProvider = 'claude' | 'openai-compat';
-export type LlmUsage = 'main' | 'track-extract';
 
 const DEFAULT_PROVIDER: LlmProvider = 'claude';
 const DEFAULT_CLAUDE_MODEL = 'claude-sonnet-4-20250514';
-const DEFAULT_CLAUDE_TRACK_EXTRACT_MODEL = 'claude-haiku-4-5-20251001';
 
 export interface GenerateTextOptions {
   systemPrompt: string;
   userPrompt: string;
   maxTokens: number;
   model?: string;
-  usage?: LlmUsage;
 }
 
 export interface GenerateTextResult {
@@ -40,23 +37,11 @@ function readRequiredEnv(name: string): string {
   return value;
 }
 
-function resolveModel(provider: LlmProvider, usage: LlmUsage, requestedModel?: string): string {
+function resolveModel(provider: LlmProvider, requestedModel?: string): string {
   if (requestedModel) return requestedModel;
 
   if (provider === 'claude') {
-    if (usage === 'track-extract') {
-      return (
-        process.env.ANTHROPIC_TRACK_EXTRACT_MODEL ??
-        process.env.ANTHROPIC_MODEL ??
-        DEFAULT_CLAUDE_TRACK_EXTRACT_MODEL
-      );
-    }
     return process.env.ANTHROPIC_MODEL ?? DEFAULT_CLAUDE_MODEL;
-  }
-
-  if (usage === 'track-extract') {
-    const trackExtractModel = process.env.OPENAI_COMPAT_TRACK_EXTRACT_MODEL;
-    if (trackExtractModel) return trackExtractModel;
   }
 
   const openAiCompatModel = process.env.OPENAI_COMPAT_MODEL;
@@ -178,18 +163,17 @@ async function runOpenAiCompatCompletion(options: GenerateTextOptions, model: st
   return extractOpenAiCompatText(parsedBody);
 }
 
-export function resolveLlmSettings(options: { model?: string; usage?: LlmUsage } = {}): {
+export function resolveLlmSettings(options: { model?: string } = {}): {
   provider: LlmProvider;
   model: string;
 } {
   const provider = normalizeProvider(process.env.LLM_PROVIDER ?? DEFAULT_PROVIDER);
-  const usage = options.usage ?? 'main';
-  const model = resolveModel(provider, usage, options.model);
+  const model = resolveModel(provider, options.model);
   return { provider, model };
 }
 
 export async function generateText(options: GenerateTextOptions): Promise<GenerateTextResult> {
-  const settings = resolveLlmSettings({ model: options.model, usage: options.usage });
+  const settings = resolveLlmSettings({ model: options.model });
   const text = settings.provider === 'claude'
     ? await runClaudeCompletion(options, settings.model)
     : await runOpenAiCompatCompletion(options, settings.model);

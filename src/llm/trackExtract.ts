@@ -22,7 +22,6 @@ export async function extractTracks(
 
   const completion = await generateText({
     model,
-    usage: 'track-extract',
     maxTokens: 1024,
     systemPrompt: template.system,
     userPrompt,

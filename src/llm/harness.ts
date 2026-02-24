@@ -61,7 +61,7 @@ export async function runQuery(
   context: BuiltContext,
   options: HarnessOptions = {}
 ): Promise<HarnessResult> {
-  const { model } = resolveLlmSettings({ model: options.model, usage: 'main' });
+  const { model } = resolveLlmSettings({ model: options.model });
   const expand = options.expand ?? false;
   const templatePath = options.templatePath ?? defaultTemplatePath(context.queryType);
   const template = loadTemplate(templatePath);
@@ -90,7 +90,6 @@ export async function runQuery(
 
   const llmResult = await generateText({
     model,
-    usage: 'main',
     maxTokens: DEFAULT_MAX_TOKENS,
     systemPrompt,
     userPrompt,

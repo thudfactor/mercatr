@@ -119,10 +119,11 @@ These flags work with all three commands.
 | `--verbose` | Print assembled Last.fm context to stderr |
 | `--dry-run` | Print the full interpolated prompt without calling the LLM |
 | `--no-cache` | Bypass Last.fm cache for this run |
-| `--model <model>` | Override the default LLM model |
+| `--model <model>` | Override the LLM model for this run |
 | `--template <path>` | Use a custom prompt template file |
 | `--expand` | Activate expanded genre diversity mode |
 | `--export [path]` | Export the playlist as an XSPF file |
+| `--voice <name>` | Apply a voice persona from `prompts/voices/` |
 
 ## Features
 
@@ -162,6 +163,24 @@ The `--expand` flag upgrades this to hard constraints:
 - At least 1 selection from a non-anglophone tradition
 - At least 1 selection from metal, blues, jazz, or classical
 
+### Voice personas
+
+The `--voice` flag applies a persona that shapes the LLM's writing style without changing its data sources or reasoning.
+
+```bash
+npx tsx src/cli.ts explore --artist "Nina Simone" --voice knowledgeable-friend
+npx tsx src/cli.ts bridge --from "Slowdive" --to "Burial" --voice gonzo-journalist
+```
+
+Available voices:
+
+| Voice ID | Description |
+|---|---|
+| `knowledgeable-friend` | Enthusiastic and personal, like sharing a discovery over a drink |
+| `gonzo-journalist` | Opinionated, digressive, and willing to make it personal |
+
+Voices are defined as Markdown files in `prompts/voices/`. Add a new `.md` file there and it becomes immediately available without any code changes. The web interface lists voices via `GET /api/voices`.
+
 ### XSPF export
 
 The `--export` flag extracts a structured track list from the LLM response and writes a standards-compliant XSPF playlist file, compatible with import tools like Soundiiz and TuneMyMusic.
@@ -180,7 +199,7 @@ The exported file includes a `<title>` and `<annotation>` derived from the query
 - bridge: "Bridge: Miles Davis → Aphex Twin"
 - theme: "Theme: loneliness in crowded places"
 
-Track extraction can use a separate model (`ANTHROPIC_TRACK_EXTRACT_MODEL` or `OPENAI_COMPAT_TRACK_EXTRACT_MODEL`) to keep costs low.
+Track extraction uses the same model as the main query, configurable via `ANTHROPIC_MODEL` / `OPENAI_COMPAT_MODEL` or the `--model` flag.
 
 ## Output contract
 
@@ -267,12 +286,10 @@ ls logs/
 | `LASTFM_API_KEY` | Yes | — | Last.fm API key |
 | `LLM_PROVIDER` | No | `claude` | LLM backend: `claude` or `openai-compat` |
 | `ANTHROPIC_API_KEY` | Claude only | — | Anthropic API key |
-| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-20250514` | Default model when `LLM_PROVIDER=claude` |
-| `ANTHROPIC_TRACK_EXTRACT_MODEL` | No | `claude-haiku-4-5-20251001` | Track-extract model when `LLM_PROVIDER=claude` |
+| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-20250514` | Model used for all LLM calls when `LLM_PROVIDER=claude` |
 | `OPENAI_COMPAT_BASE_URL` | OpenAI-compat only | — | Base URL for OpenAI-compatible API (for example, `https://api.openai.com/v1`) |
 | `OPENAI_COMPAT_API_KEY` | OpenAI-compat only | — | API key for OpenAI-compatible API |
-| `OPENAI_COMPAT_MODEL` | OpenAI-compat only | — | Default model when `LLM_PROVIDER=openai-compat` |
-| `OPENAI_COMPAT_TRACK_EXTRACT_MODEL` | No | `OPENAI_COMPAT_MODEL` | Track-extract model when `LLM_PROVIDER=openai-compat` |
+| `OPENAI_COMPAT_MODEL` | OpenAI-compat only | — | Model used for all LLM calls when `LLM_PROVIDER=openai-compat` |
 | `LASTFM_CACHE_TTL_HOURS` | No | `24` | Cache TTL (accepts decimals, e.g. `0.5` for 30 min) |
 | `MIN_TAG_COUNT` | No | `10` | Filters out noisy low-count tags from Last.fm |
 | `BASIC_AUTH_USER` | Web only | — | Username for Basic Auth (required by `npm run serve`) |
