@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Anthropic from '@anthropic-ai/sdk';
 import { loadTemplate, defaultTemplatePath, interpolate } from './templates.js';
 import { logResponse } from './logger.js';
 import { generateText, resolveLlmSettings } from './provider.js';
@@ -17,7 +16,6 @@ function buildVoiceBlock(voiceId?: string): string {
   return `\n\n## Voice\n\n${contents}`;
 }
 
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
 const DEFAULT_MAX_TOKENS = 4096;
 
 const EXPAND_MODE_REQUIREMENT =
