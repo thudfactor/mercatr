@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { loadTemplate, defaultTemplatePath, interpolate } from './templates.js';
 import { logResponse } from './logger.js';
+import { generateText, resolveLlmSettings } from './provider.js';
 import type { BuiltContext } from '../context/types.js';
 import type { PreflightEntry } from './logger.js';
 
@@ -62,7 +63,7 @@ export async function runQuery(
   context: BuiltContext,
   options: HarnessOptions = {}
 ): Promise<HarnessResult> {
-  const model = options.model ?? process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL;
+  const { model } = resolveLlmSettings({ model: options.model, usage: 'main' });
   const expand = options.expand ?? false;
   const templatePath = options.templatePath ?? defaultTemplatePath(context.queryType);
   const template = loadTemplate(templatePath);
@@ -89,22 +90,14 @@ export async function runQuery(
     };
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-
-  const client = new Anthropic({ apiKey });
-
-  const message = await client.messages.create({
+  const llmResult = await generateText({
     model,
-    max_tokens: DEFAULT_MAX_TOKENS,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
+    usage: 'main',
+    maxTokens: DEFAULT_MAX_TOKENS,
+    systemPrompt,
+    userPrompt,
   });
-
-  const response = message.content
-    .filter(block => block.type === 'text')
-    .map(block => (block as { type: 'text'; text: string }).text)
-    .join('\n');
+  const response = llmResult.text;
 
   logResponse({
     timestamp: new Date().toISOString(),
@@ -112,12 +105,12 @@ export async function runQuery(
     expandMode: expand,
     voice: options.voice ?? null,
     templatePath,
-    model,
+    model: llmResult.model,
     systemPrompt,
     userPrompt,
     response,
     ...(options.preflight ? { preflight: options.preflight } : {}),
   });
 
-  return { response, systemPrompt, userPrompt, model, dryRun: false };
+  return { response, systemPrompt, userPrompt, model: llmResult.model, dryRun: false };
 }

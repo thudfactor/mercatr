@@ -1,6 +1,6 @@
 # Mercatr
 
-A CLI tool for generating thematic music playlists with transparent reasoning. Given a seed (an artist, a song, or a theme), it queries Last.fm for folksonomy data, then uses Claude to surface thematic connections across genres and decades.
+A CLI tool for generating thematic music playlists with transparent reasoning. Given a seed (an artist, a song, or a theme), it queries Last.fm for folksonomy data, then uses a configurable LLM provider (Claude or OpenAI-compatible) to surface thematic connections across genres and decades.
 
 The goal is **musical diversity through thematic coherence** — finding what Elliott Smith and Hank Williams share, not just what sounds similar.
 
@@ -12,20 +12,28 @@ The goal is **musical diversity through thematic coherence** — finding what El
 npm install
 ```
 
-### 2. Configure API keys
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add your keys:
+Edit `.env` and set Last.fm plus your LLM provider settings:
 
 - **Last.fm**: Get a free API key at https://www.last.fm/api/account/create
-- **Anthropic**: Get an API key at https://console.anthropic.com
+- **Claude (Anthropic)**: Get an API key at https://console.anthropic.com
+- **OpenAI-compatible**: Use your provider's base URL, key, and model
 
 ```bash
 LASTFM_API_KEY=your_lastfm_api_key_here
+LLM_PROVIDER=claude
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# OR, for OpenAI-compatible APIs:
+# LLM_PROVIDER=openai-compat
+# OPENAI_COMPAT_BASE_URL=https://api.openai.com/v1
+# OPENAI_COMPAT_API_KEY=your_openai_or_compatible_api_key_here
+# OPENAI_COMPAT_MODEL=gpt-4o-mini
 ```
 
 ## Web interface
@@ -111,7 +119,7 @@ These flags work with all three commands.
 | `--verbose` | Print assembled Last.fm context to stderr |
 | `--dry-run` | Print the full interpolated prompt without calling the LLM |
 | `--no-cache` | Bypass Last.fm cache for this run |
-| `--model <model>` | Override the default Claude model |
+| `--model <model>` | Override the default LLM model |
 | `--template <path>` | Use a custom prompt template file |
 | `--expand` | Activate expanded genre diversity mode |
 | `--export [path]` | Export the playlist as an XSPF file |
@@ -120,7 +128,7 @@ These flags work with all three commands.
 
 ### Artist confidence preflight
 
-Before querying, mercatr checks every artist name against Last.fm and Claude to catch typos and ambiguous names. This fires automatically — no flag needed.
+Before querying, mercatr checks every artist name against Last.fm and the configured LLM to catch typos and ambiguous names. This fires automatically — no flag needed.
 
 - **High confidence** — proceeds silently, using the canonical spelling from Last.fm
 - **Medium confidence** — prompts for confirmation:
@@ -141,7 +149,7 @@ The resolved name (not the original input) is used for all downstream lookups an
 
 The `theme` command translates abstract themes into Last.fm folksonomy tags before querying. For example, "loneliness in crowded places" might become tags like `melancholy`, `introspective`, `urban`, `ambient`, `post-punk`. This bridges the gap between how people describe moods and how Last.fm users tag music.
 
-The main prompt receives both the original theme and the translation metadata, so Claude knows the data is one step removed from the user's intent.
+The main prompt receives both the original theme and the translation metadata, so the model knows the data is one step removed from the user's intent.
 
 ### Genre diversity controls
 
@@ -172,7 +180,7 @@ The exported file includes a `<title>` and `<annotation>` derived from the query
 - bridge: "Bridge: Miles Davis → Aphex Twin"
 - theme: "Theme: loneliness in crowded places"
 
-Track extraction uses a smaller model (`claude-haiku-4-5`) to keep costs low.
+Track extraction can use a separate model (`ANTHROPIC_TRACK_EXTRACT_MODEL` or `OPENAI_COMPAT_TRACK_EXTRACT_MODEL`) to keep costs low.
 
 ## Output contract
 
@@ -257,8 +265,14 @@ ls logs/
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `LASTFM_API_KEY` | Yes | — | Last.fm API key |
-| `ANTHROPIC_API_KEY` | Yes | — | Anthropic API key |
-| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-20250514` | Default model for all LLM calls |
+| `LLM_PROVIDER` | No | `claude` | LLM backend: `claude` or `openai-compat` |
+| `ANTHROPIC_API_KEY` | Claude only | — | Anthropic API key |
+| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-20250514` | Default model when `LLM_PROVIDER=claude` |
+| `ANTHROPIC_TRACK_EXTRACT_MODEL` | No | `claude-haiku-4-5-20251001` | Track-extract model when `LLM_PROVIDER=claude` |
+| `OPENAI_COMPAT_BASE_URL` | OpenAI-compat only | — | Base URL for OpenAI-compatible API (for example, `https://api.openai.com/v1`) |
+| `OPENAI_COMPAT_API_KEY` | OpenAI-compat only | — | API key for OpenAI-compatible API |
+| `OPENAI_COMPAT_MODEL` | OpenAI-compat only | — | Default model when `LLM_PROVIDER=openai-compat` |
+| `OPENAI_COMPAT_TRACK_EXTRACT_MODEL` | No | `OPENAI_COMPAT_MODEL` | Track-extract model when `LLM_PROVIDER=openai-compat` |
 | `LASTFM_CACHE_TTL_HOURS` | No | `24` | Cache TTL (accepts decimals, e.g. `0.5` for 30 min) |
 | `MIN_TAG_COUNT` | No | `10` | Filters out noisy low-count tags from Last.fm |
 | `BASIC_AUTH_USER` | Web only | — | Username for Basic Auth (required by `npm run serve`) |

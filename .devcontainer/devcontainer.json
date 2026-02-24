@@ -1,0 +1,40 @@
+{
+  "name": "Mercatr Development",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next"
+      ],
+      "settings": {
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        "editor.formatOnSave": false,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        }
+      }
+    }
+  },
+  
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Mercatr Server",
+      "onAutoForward": "notify"
+    }
+  },
+  
+  "postCreateCommand": "npm install",
+  
+  "remoteEnv": {
+    "NODE_ENV": "development"
+  }
+}
