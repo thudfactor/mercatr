@@ -581,9 +581,29 @@
 
     footer a:hover { color: var(--color-text-faint); }
 
-    #footer-model {
+    #footer-models {
+      display: flex;
+      gap: 1.5rem;
+      margin: 0;
+    }
+
+    #footer-models > div {
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+
+    #footer-models dt {
+      color: var(--color-text-ghoster);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    #footer-models dd {
       color: var(--color-text-ghoster);
       font-size: 0.8rem;
+      margin: 0;
     }
 
     [hidden] { display: none !important; }

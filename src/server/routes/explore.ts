@@ -4,6 +4,7 @@ import { checkArtistConfidence } from '../../llm/artistConfidence.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
+import { resolveProcessingModel } from '../../llm/provider.js';
 
 const router = Router();
 
@@ -17,7 +18,8 @@ router.post('/', async (req, res) => {
 
   try {
     const client = new LastfmClient({ noCache: false });
-    const { result } = await checkArtistConfidence(artist, client);
+    const processingModel = resolveProcessingModel();
+    const { result } = await checkArtistConfidence(artist, client, processingModel);
 
     if (result.confidence === 'low') {
       res.status(404).json({ error: result.reasoning, type: 'artist_not_found' });

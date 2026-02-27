@@ -172,6 +172,24 @@ export function resolveLlmSettings(options: { model?: string } = {}): {
   return { provider, model };
 }
 
+export function resolveProcessingModel(overrideModel?: string): string {
+  if (overrideModel) return overrideModel;
+  const provider = normalizeProvider(process.env.LLM_PROVIDER ?? DEFAULT_PROVIDER);
+  if (provider === 'claude') {
+    return process.env.ANTHROPIC_PROCESSING_MODEL
+      ?? process.env.ANTHROPIC_MODEL
+      ?? DEFAULT_CLAUDE_MODEL;
+  }
+  const model = process.env.OPENAI_COMPAT_PROCESSING_MODEL ?? process.env.OPENAI_COMPAT_MODEL;
+  if (!model) {
+    throw new Error(
+      'OPENAI_COMPAT_PROCESSING_MODEL environment variable is not set. ' +
+      'Set OPENAI_COMPAT_PROCESSING_MODEL or pass --processing-model.'
+    );
+  }
+  return model;
+}
+
 export async function generateText(options: GenerateTextOptions): Promise<GenerateTextResult> {
   const settings = resolveLlmSettings({ model: options.model });
   const text = settings.provider === 'claude'
