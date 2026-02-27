@@ -1,4 +1,5 @@
 node_modules/
+public/marked.umd.js
 dist/
 .env
 .cache/
