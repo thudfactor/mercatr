@@ -107,7 +107,16 @@
 
   <footer>
     <a href="https://github.com/thudfactor/mercatr/" target="_blank" rel="noopener noreferrer">thudfactor/mercatr</a>
-    <span id="footer-model" aria-label="Current model"></span>
+    <dl id="footer-models" aria-label="Active models">
+      <div>
+        <dt>Playlist</dt>
+        <dd id="footer-model-main"></dd>
+      </div>
+      <div>
+        <dt>Processing</dt>
+        <dd id="footer-model-processing"></dd>
+      </div>
+    </dl>
   </footer>
 
   <dialog id="error-dialog" aria-labelledby="error-title">
@@ -692,8 +701,9 @@
       try {
         const res = await fetch('/api/config');
         if (!res.ok) return;
-        const { model } = await res.json();
-        document.getElementById('footer-model').textContent = model;
+        const { model, processingModel } = await res.json();
+        document.getElementById('footer-model-main').textContent = model;
+        document.getElementById('footer-model-processing').textContent = processingModel;
       } catch { /* non-critical */ }
     }
 

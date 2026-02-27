@@ -68,4 +68,4 @@ Three-layer pipeline: **Last.fm Client → Context Builder → LLM Harness**, wi
 - **stderr for status, stdout for output.** Never `console.log` status messages — use `process.stderr.write`.
 - **Preflight results are logged.** All artist confidence checks and theme translations appear in the log entry's `preflight` array, including halted runs.
 - **Prompt templates own the prose.** Code interpolates variables and selects sections; it never constructs prompt text inline.
-- **Single model for all LLM calls.** The same model handles playlist generation, preflights, and track extraction. Configurable via `ANTHROPIC_MODEL` / `OPENAI_COMPAT_MODEL` env vars or `--model` flag.
+- **Two-model split.** Playlist generation (`harness.ts`) uses the main model (`ANTHROPIC_MODEL` / `--model`). Preflights and track extraction use the processing model (`ANTHROPIC_PROCESSING_MODEL` / `--processing-model`), which falls back to the main model if unset.

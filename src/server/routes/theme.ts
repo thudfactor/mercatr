@@ -5,6 +5,7 @@ import { runThemeTranslation } from '../../llm/themeTranslate.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
+import { resolveProcessingModel } from '../../llm/provider.js';
 
 const router = Router();
 
@@ -18,10 +19,11 @@ router.post('/', async (req, res) => {
 
   try {
     const client = new LastfmClient({ noCache: false });
+    const processingModel = resolveProcessingModel();
 
     let resolvedSeed: string | undefined;
     if (seedArtist) {
-      const { result } = await checkArtistConfidence(seedArtist, client);
+      const { result } = await checkArtistConfidence(seedArtist, client, processingModel);
       if (result.confidence === 'low') {
         res.status(404).json({ error: result.reasoning, type: 'artist_not_found' });
         return;
@@ -29,7 +31,7 @@ router.post('/', async (req, res) => {
       resolvedSeed = result.resolvedName ?? seedArtist;
     }
 
-    const { result: translation } = await runThemeTranslation(theme);
+    const { result: translation } = await runThemeTranslation(theme, processingModel);
     const { translatedTags, moodTerms, genreHints } = translation;
 
     const query = {

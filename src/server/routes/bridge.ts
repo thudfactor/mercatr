@@ -4,6 +4,7 @@ import { checkArtistConfidence } from '../../llm/artistConfidence.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
+import { resolveProcessingModel } from '../../llm/provider.js';
 
 const router = Router();
 
@@ -17,9 +18,10 @@ router.post('/', async (req, res) => {
 
   try {
     const client = new LastfmClient({ noCache: false });
+    const processingModel = resolveProcessingModel();
     const [fromCheck, toCheck] = await Promise.all([
-      checkArtistConfidence(from, client),
-      checkArtistConfidence(to, client),
+      checkArtistConfidence(from, client, processingModel),
+      checkArtistConfidence(to, client, processingModel),
     ]);
 
     if (fromCheck.result.confidence === 'low') {

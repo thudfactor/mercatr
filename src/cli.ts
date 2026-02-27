@@ -9,6 +9,7 @@ import { runQuery, VOICES_DIR } from './llm/harness.js';
 import { checkArtistConfidence, CONFIDENCE_TEMPLATE_PATH } from './llm/artistConfidence.js';
 import { runThemeTranslation, THEME_TRANSLATE_TEMPLATE_PATH } from './llm/themeTranslate.js';
 import { logResponse } from './llm/logger.js';
+import { resolveProcessingModel } from './llm/provider.js';
 import { extractTracks } from './llm/trackExtract.js';
 import { writeXspf } from './export/xspf.js';
 import type { PreflightEntry } from './llm/logger.js';
@@ -29,7 +30,8 @@ function addSharedFlags(cmd: Command): Command {
     .option('--verbose', 'Print assembled Last.fm context to stderr')
     .option('--dry-run', 'Print full prompt without calling the LLM')
     .option('--no-cache', 'Bypass Last.fm cache for this run')
-    .option('--model <model>', 'Override the LLM model')
+    .option('--model <model>', 'Override the LLM model for playlist generation')
+    .option('--processing-model <model>', 'Override the LLM model for preflight and track extraction')
     .option('--template <path>', 'Override the prompt template file path')
     .option('--expand', 'Use expanded genre diversity mode')
     .option('--export [path]', 'Export playlist as XSPF file (optional path, defaults to playlist-{timestamp}.xspf)')
@@ -186,6 +188,7 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
     const noCache = options.cache === false || options['no-cache'] === true;
     const client = new LastfmClient({ noCache });
     const model = options.model as string | undefined;
+    const processingModel = resolveProcessingModel(options.processingModel as string | undefined);
     const voiceId = options.voice as string | undefined;
 
     // --- Voice validation ---
@@ -208,7 +211,7 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
     const mutableQuery = { ...queryInput } as QueryInput;
 
     if (mutableQuery.type === 'explore') {
-      const resolved = await resolveArtist(mutableQuery.artist, client, mutableQuery.type, model);
+      const resolved = await resolveArtist(mutableQuery.artist, client, mutableQuery.type, processingModel);
       preflight.push(resolved.preflightEntry);
       if (resolved.halted) {
         logResponse({ timestamp: new Date().toISOString(), queryType: mutableQuery.type, preflight, halted: true });
@@ -219,8 +222,8 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
 
     if (mutableQuery.type === 'bridge') {
       const [fromResolved, toResolved] = await Promise.all([
-        resolveArtist(mutableQuery.fromArtist, client, mutableQuery.type, model),
-        resolveArtist(mutableQuery.toArtist, client, mutableQuery.type, model),
+        resolveArtist(mutableQuery.fromArtist, client, mutableQuery.type, processingModel),
+        resolveArtist(mutableQuery.toArtist, client, mutableQuery.type, processingModel),
       ]);
       preflight.push(fromResolved.preflightEntry, toResolved.preflightEntry);
       if (fromResolved.halted || toResolved.halted) {
@@ -232,7 +235,7 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
     }
 
     if (mutableQuery.type === 'theme' && mutableQuery.seedArtist) {
-      const resolved = await resolveArtist(mutableQuery.seedArtist, client, mutableQuery.type, model);
+      const resolved = await resolveArtist(mutableQuery.seedArtist, client, mutableQuery.type, processingModel);
       preflight.push(resolved.preflightEntry);
       if (resolved.halted) {
         logResponse({ timestamp: new Date().toISOString(), queryType: mutableQuery.type, preflight, halted: true });
@@ -246,7 +249,7 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
 
     if (mutableQuery.type === 'theme') {
       process.stderr.write(`Translating theme to folksonomy tags...\n`);
-      const translation = await runThemeTranslation(mutableQuery.theme, model);
+      const translation = await runThemeTranslation(mutableQuery.theme, processingModel);
       (mutableQuery as ThemeQuery).translatedTags = translation.result.translatedTags;
       (mutableQuery as ThemeQuery).translateMetadata = {
         moodTerms: translation.result.moodTerms,
@@ -300,7 +303,7 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
 
       if (options.export) {
         process.stderr.write('Extracting track list...\n');
-        const tracks = await extractTracks(result.response, model);
+        const tracks = await extractTracks(result.response, processingModel);
 
         const exportPath = typeof options.export === 'string'
           ? options.export
