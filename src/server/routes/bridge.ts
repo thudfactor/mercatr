@@ -5,16 +5,15 @@ import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 import { resolveProcessingModel } from '../../llm/provider.js';
+import { validateStringField } from '../validate.js';
 
 const router = Router();
 
 router.post('/', async (req, res) => {
   const { from, to, voice } = req.body as { from?: string; to?: string; voice?: string };
 
-  if (!from || !to) {
-    res.status(400).json({ error: 'from and to are required' });
-    return;
-  }
+  if (!validateStringField(from, 'from', res)) return;
+  if (!validateStringField(to, 'to', res)) return;
 
   try {
     const client = new LastfmClient({ noCache: false });

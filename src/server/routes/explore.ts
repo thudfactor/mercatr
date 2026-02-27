@@ -5,16 +5,15 @@ import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 import { resolveProcessingModel } from '../../llm/provider.js';
+import { validateStringField, validateOptionalStringField } from '../validate.js';
 
 const router = Router();
 
 router.post('/', async (req, res) => {
   const { artist, track, voice } = req.body as { artist?: string; track?: string; voice?: string };
 
-  if (!artist) {
-    res.status(400).json({ error: 'artist is required' });
-    return;
-  }
+  if (!validateStringField(artist, 'artist', res)) return;
+  if (!validateOptionalStringField(track, 'track', res)) return;
 
   try {
     const client = new LastfmClient({ noCache: false });

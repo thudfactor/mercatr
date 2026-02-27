@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mercatr</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/marked.umd.js"></script>
+  <script src="/purify.js"></script>
   <link rel="stylesheet" href="/main.css" />
 </head>
 <body>
@@ -29,11 +30,11 @@
       <form id="form-explore">
         <div class="field">
           <label for="explore-artist">Artist</label>
-          <input type="text" id="explore-artist" name="artist" placeholder="e.g. Elliott Smith" required>
+          <input type="text" id="explore-artist" name="artist" placeholder="e.g. Elliott Smith" maxlength="200" required>
         </div>
         <div class="field">
           <label for="explore-track">Track <span style="color:#555">(optional)</span></label>
-          <input type="text" id="explore-track" name="track" placeholder="e.g. Between the Bars">
+          <input type="text" id="explore-track" name="track" placeholder="e.g. Between the Bars" maxlength="200">
         </div>
         <div class="field">
           <label for="explore-voice">Voice <span style="color:#555">(optional)</span></label>
@@ -52,11 +53,11 @@
       <form id="form-bridge">
         <div class="field">
           <label for="bridge-from">From artist</label>
-          <input type="text" id="bridge-from" name="from" placeholder="e.g. Nick Drake" required>
+          <input type="text" id="bridge-from" name="from" placeholder="e.g. Nick Drake" maxlength="200" required>
         </div>
         <div class="field">
           <label for="bridge-to">To artist</label>
-          <input type="text" id="bridge-to" name="to" placeholder="e.g. Frank Ocean" required>
+          <input type="text" id="bridge-to" name="to" placeholder="e.g. Frank Ocean" maxlength="200" required>
         </div>
         <div class="field">
           <label for="bridge-voice">Voice <span style="color:#555">(optional)</span></label>
@@ -75,11 +76,11 @@
       <form id="form-theme">
         <div class="field">
           <label for="theme-input">Theme</label>
-          <input type="text" id="theme-input" name="theme" placeholder="e.g. loneliness in crowded places" required>
+          <input type="text" id="theme-input" name="theme" placeholder="e.g. loneliness in crowded places" maxlength="200" required>
         </div>
         <div class="field">
           <label for="theme-seed">Seed artist <span style="color:#555">(optional)</span></label>
-          <input type="text" id="theme-seed" name="seedArtist" placeholder="e.g. Bon Iver">
+          <input type="text" id="theme-seed" name="seedArtist" placeholder="e.g. Bon Iver" maxlength="200">
         </div>
         <div class="field">
           <label for="theme-voice">Voice <span style="color:#555">(optional)</span></label>
@@ -437,7 +438,7 @@
         correctionNotice.hidden = true;
       }
 
-      resultsEl.innerHTML = marked.parse(data.response);
+      resultsEl.innerHTML = DOMPurify.sanitize(marked.parse(data.response));
       if (lastTracks && lastTracks.length > 0) {
         resultsEl.appendChild(buildTrackList(lastTracks));
       }
@@ -674,7 +675,7 @@
 
       document.getElementById('detail-name').textContent = session.displayName;
       document.getElementById('detail-meta').textContent = formatMeta(session);
-      document.getElementById('detail-results').innerHTML = marked.parse(session.commentary);
+      document.getElementById('detail-results').innerHTML = DOMPurify.sanitize(marked.parse(session.commentary));
       detailDownload.disabled = !session.tracks;
 
       drawerBody.scrollTop = 0;

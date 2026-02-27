@@ -6,16 +6,15 @@ import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 import { resolveProcessingModel } from '../../llm/provider.js';
+import { validateStringField, validateOptionalStringField } from '../validate.js';
 
 const router = Router();
 
 router.post('/', async (req, res) => {
   const { theme, seedArtist, voice } = req.body as { theme?: string; seedArtist?: string; voice?: string };
 
-  if (!theme) {
-    res.status(400).json({ error: 'theme is required' });
-    return;
-  }
+  if (!validateStringField(theme, 'theme', res)) return;
+  if (!validateOptionalStringField(seedArtist, 'seedArtist', res)) return;
 
   try {
     const client = new LastfmClient({ noCache: false });
