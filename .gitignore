@@ -1,6 +1,4 @@
 node_modules/
-public/marked.umd.js
-public/purify.js
 dist/
 .env
 .cache/
@@ -8,3 +6,5 @@ logs/
 *.xspf
 .devcontainer
 *.local.*
+.astro/
+.playwright-mcp/

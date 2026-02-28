@@ -1,0 +1,225 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base title="Mercatr">
+  <Header />
+
+  <main>
+    <playlist-form></playlist-form>
+    <waiting-song></waiting-song>
+    <playlist-results hidden></playlist-results>
+  </main>
+
+  <Footer />
+  <history-drawer></history-drawer>
+  <toast-notification></toast-notification>
+  <error-dialog></error-dialog>
+</Base>
+
+<script>
+  import '../components/playlist-form.js';
+  import '../components/playlist-results.js';
+  import '../components/waiting-song.js';
+  import '../components/history-drawer.js';
+  import '../components/toast-notification.js';
+  import '../components/error-dialog.js';
+  import type { PlaylistSubmitDetail } from '../components/playlist-form.js';
+  import type { Track } from '../components/playlist-results.js';
+  import type { PlaylistForm } from '../components/playlist-form.js';
+  import type { PlaylistResults } from '../components/playlist-results.js';
+  import type { WaitingSong } from '../components/waiting-song.js';
+  import type { HistoryDrawer } from '../components/history-drawer.js';
+  import type { ToastNotification } from '../components/toast-notification.js';
+  import type { ErrorDialog } from '../components/error-dialog.js';
+
+  const form = document.querySelector('playlist-form') as PlaylistForm;
+  const results = document.querySelector('playlist-results') as PlaylistResults;
+  const waiter = document.querySelector('waiting-song') as WaitingSong;
+  const drawer = document.querySelector('history-drawer') as HistoryDrawer;
+  const toast = document.querySelector('toast-notification') as ToastNotification;
+  const errorEl = document.querySelector('error-dialog') as ErrorDialog;
+  const historyBtn = document.getElementById('history-btn') as HTMLButtonElement;
+  const historyCount = document.getElementById('history-count')!;
+
+  let lastTracks: Track[] | null = null;
+  let lastTitle = '';
+
+  function updateHistoryCount() {
+    const count = drawer.sessionCount;
+    historyCount.textContent = count > 0 ? ` (${count})` : '';
+  }
+
+  function clearResults() {
+    results.narrative = '';
+    results.tracks = [];
+    results.correctionHtml = '';
+    results.hidden = true;
+    lastTracks = null;
+    lastTitle = '';
+  }
+
+  function toTitleCase(str: string) {
+    return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+  }
+
+  function computeDisplayName(mode: string, inputs: Record<string, string>) {
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (mode === 'artist') return `Artist: ${toTitleCase(inputs.artist)} \u2014 ${date}`;
+    if (mode === 'theme') return `Theme: ${toTitleCase(inputs.theme)} \u2014 ${date}`;
+    return `${toTitleCase(inputs.artistFrom)} \u2192 ${toTitleCase(inputs.artistTo)} \u2014 ${date}`;
+  }
+
+  // Playlist submission
+  document.addEventListener('playlist-submit', async (e: Event) => {
+    const { mode, body, title, sessionInputs, sessionMode } = (e as CustomEvent<PlaylistSubmitDetail>).detail;
+    clearResults();
+    form.loading = true;
+    waiter.active = true;
+
+    try {
+      const res = await fetch(`/api/${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.show(data.error ?? 'An unexpected error occurred.');
+        return;
+      }
+
+      lastTracks = data.tracks ?? null;
+      lastTitle = title;
+
+      // Correction notice
+      let correctionHtml = '';
+      if (data.resolvedArtist) {
+        const original = Array.isArray(data.originalInput)
+          ? data.originalInput.join(' / ')
+          : data.originalInput;
+        const resolved = Array.isArray(data.resolvedArtist)
+          ? data.resolvedArtist.join(' / ')
+          : data.resolvedArtist;
+        correctionHtml = `Artist name corrected: <em>${original}</em> \u2192 <em>${resolved}</em>`;
+      }
+
+      results.narrative = data.response;
+      results.tracks = data.tracks ?? [];
+      results.correctionHtml = correctionHtml;
+      results.hidden = false;
+
+      // Save to history
+      if (drawer.storageAvailable) {
+        const session = {
+          id: crypto.randomUUID(),
+          mode: sessionMode,
+          inputs: sessionInputs,
+          playlist: [],
+          tracks: lastTracks,
+          commentary: data.response,
+          createdAt: new Date().toISOString(),
+          displayName: computeDisplayName(sessionMode, sessionInputs),
+        };
+        const saved = drawer.addSession(session);
+        if (saved) {
+          toast.show('Session saved to history.');
+          updateHistoryCount();
+        } else {
+          toast.show("Couldn't save session \u2014 storage full. Clear your history to free space.", 'error');
+        }
+      }
+    } catch {
+      errorEl.show('Network error. Please try again.');
+    } finally {
+      form.loading = false;
+      waiter.active = false;
+    }
+  });
+
+  // Tab change and form reset clear results
+  document.addEventListener('tab-change', clearResults);
+  document.addEventListener('form-reset', clearResults);
+
+  // XSPF download (from results or history)
+  async function downloadXspf(tracks: Track[], title: string) {
+    try {
+      const res = await fetch('/api/xspf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tracks, title }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        errorEl.show(data.error ?? 'Failed to generate XSPF.');
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'playlist.xspf';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      errorEl.show('Failed to download XSPF.');
+    }
+  }
+
+  document.addEventListener('download-xspf', (e: Event) => {
+    const detail = (e as CustomEvent).detail;
+    if (detail?.tracks) {
+      downloadXspf(detail.tracks, detail.title);
+    } else if (lastTracks) {
+      downloadXspf(lastTracks, lastTitle);
+    }
+  });
+
+  // History drawer
+  historyBtn.addEventListener('click', () => {
+    drawer.open();
+    historyBtn.setAttribute('aria-expanded', 'true');
+  });
+
+  document.addEventListener('drawer-closed', () => {
+    historyBtn.setAttribute('aria-expanded', 'false');
+    historyBtn.focus();
+  });
+
+  document.addEventListener('history-cleared', updateHistoryCount);
+
+  // Init
+  if (!drawer.storageAvailable) {
+    historyBtn.disabled = true;
+    historyBtn.title = 'History unavailable in this browser context.';
+  } else {
+    updateHistoryCount();
+  }
+
+  // Load voices
+  (async () => {
+    try {
+      const res = await fetch('/api/voices');
+      if (!res.ok) return;
+      const { voices } = await res.json();
+      form.voices = voices;
+    } catch { /* non-critical */ }
+  })();
+
+  // Load config
+  (async () => {
+    try {
+      const res = await fetch('/api/config');
+      if (!res.ok) return;
+      const { model, processingModel } = await res.json();
+      document.getElementById('footer-model-main')!.textContent = model;
+      document.getElementById('footer-model-processing')!.textContent = processingModel;
+    } catch { /* non-critical */ }
+  })();
+</script>
