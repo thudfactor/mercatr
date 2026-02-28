@@ -1,39 +1,48 @@
-import { Router } from 'express';
+import type { APIRoute } from 'astro';
 import { LastfmClient } from '../../lastfm/client.js';
 import { checkArtistConfidence } from '../../llm/artistConfidence.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 import { resolveProcessingModel } from '../../llm/provider.js';
-import { validateStringField } from '../validate.js';
+import { validateStringField } from '../../lib/validate.js';
 
-const router = Router();
+export const POST: APIRoute = async ({ request }) => {
+  const { from, to, voice } = await request.json() as {
+    from?: string;
+    to?: string;
+    voice?: string;
+  };
 
-router.post('/', async (req, res) => {
-  const { from, to, voice } = req.body as { from?: string; to?: string; voice?: string };
+  const fromErr = validateStringField(from, 'from');
+  if (fromErr) return Response.json({ error: fromErr.error }, { status: fromErr.status });
 
-  if (!validateStringField(from, 'from', res)) return;
-  if (!validateStringField(to, 'to', res)) return;
+  const toErr = validateStringField(to, 'to');
+  if (toErr) return Response.json({ error: toErr.error }, { status: toErr.status });
 
   try {
     const client = new LastfmClient({ noCache: false });
     const processingModel = resolveProcessingModel();
     const [fromCheck, toCheck] = await Promise.all([
-      checkArtistConfidence(from, client, processingModel),
-      checkArtistConfidence(to, client, processingModel),
+      checkArtistConfidence(from!, client, processingModel),
+      checkArtistConfidence(to!, client, processingModel),
     ]);
 
     if (fromCheck.result.confidence === 'low') {
-      res.status(404).json({ error: fromCheck.result.reasoning, type: 'artist_not_found', artist: from });
-      return;
+      return Response.json(
+        { error: fromCheck.result.reasoning, type: 'artist_not_found', artist: from },
+        { status: 404 },
+      );
     }
     if (toCheck.result.confidence === 'low') {
-      res.status(404).json({ error: toCheck.result.reasoning, type: 'artist_not_found', artist: to });
-      return;
+      return Response.json(
+        { error: toCheck.result.reasoning, type: 'artist_not_found', artist: to },
+        { status: 404 },
+      );
     }
 
-    const resolvedFrom = fromCheck.result.resolvedName ?? from;
-    const resolvedTo = toCheck.result.resolvedName ?? to;
+    const resolvedFrom = fromCheck.result.resolvedName ?? from!;
+    const resolvedTo = toCheck.result.resolvedName ?? to!;
 
     const query = { type: 'bridge' as const, fromArtist: resolvedFrom, toArtist: resolvedTo };
     const context = await buildContext(client, query);
@@ -41,10 +50,10 @@ router.post('/', async (req, res) => {
     const { narrative, tracks, warning } = parseTracksFromResponse(raw);
     if (warning) process.stderr.write(`[bridge] ${warning}\n`);
 
-    const fromCorrected = resolvedFrom.toLowerCase() !== from.toLowerCase();
-    const toCorrected = resolvedTo.toLowerCase() !== to.toLowerCase();
+    const fromCorrected = resolvedFrom.toLowerCase() !== from!.toLowerCase();
+    const toCorrected = resolvedTo.toLowerCase() !== to!.toLowerCase();
 
-    res.json({
+    return Response.json({
       response: narrative,
       tracks,
       ...((fromCorrected || toCorrected) ? {
@@ -54,8 +63,6 @@ router.post('/', async (req, res) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error';
-    res.status(500).json({ error: message });
+    return Response.json({ error: message }, { status: 500 });
   }
-});
-
-export default router;
+};

@@ -7,16 +7,20 @@ See `README.md` for commands, flags, environment variables, and feature document
 ## Commands
 
 ```bash
-# Type-check without emitting
-npx tsc --noEmit
+# Type-check
+npx astro check
 
 # Run the CLI (no build step needed)
 npx tsx src/cli.ts explore --artist "Elliott Smith"
 npx tsx src/cli.ts bridge --from "Nick Drake" --to "Frank Ocean"
 npx tsx src/cli.ts theme --theme "loneliness in crowded places"
 
-# Run the web server (requires BASIC_AUTH_USER and BASIC_AUTH_PASSWORD in .env)
-npm run serve
+# Dev server (requires BASIC_AUTH_USER and BASIC_AUTH_PASSWORD in .env)
+npm run dev
+
+# Production build + start
+npm run build
+npm start
 
 # Deploy to Railway
 npm run deploy
@@ -24,7 +28,7 @@ npm run deploy
 
 ## Architecture
 
-Three-layer pipeline: **Last.fm Client → Context Builder → LLM Harness**, wired together by two entry points: the CLI (`src/cli.ts`) and the web server (`src/server/`).
+Three-layer pipeline: **Last.fm Client → Context Builder → LLM Harness**, wired together by two entry points: the CLI (`src/cli.ts`) and the Astro SSR web app (`src/pages/`).
 
 ### Core pipeline
 
@@ -44,13 +48,30 @@ Three-layer pipeline: **Last.fm Client → Context Builder → LLM Harness**, wi
 
 **`src/export/`** — `xspf.ts` builds and writes XSPF playlist files with XML escaping. Accepts optional `title` and `description` (rendered as `<title>` and `<annotation>`).
 
-### Web server
+### Web app (Astro SSR + Lit)
 
-**`src/server/`** — Express 5 app serving both a JSON API and a static SPA (`public/index.html`).
-- `index.ts` — mounts middleware (Basic Auth, JSON parser), registers routes, serves static files from `public/`
-- `auth.ts` — Basic Auth middleware (requires `BASIC_AUTH_USER` + `BASIC_AUTH_PASSWORD` env vars)
-- `routes/` — one file per endpoint (`explore.ts`, `bridge.ts`, `theme.ts`, `xspf.ts`). Each route reuses the core pipeline (client, builder, harness).
-- `GET /api/voices` — returns the voice manifest from `prompts/voices/manifest.json`
+**`src/pages/`** — Astro SSR pages and API routes, using `@astrojs/node` standalone adapter.
+- `index.astro` — main app page, wires Lit web components together with a thin orchestrator `<script>`
+- `api/explore.ts`, `api/bridge.ts`, `api/theme.ts` — POST endpoints using Web API `Request`/`Response`. Each route reuses the core pipeline.
+- `api/xspf.ts` — POST endpoint that builds XSPF XML from track data
+- `api/voices.ts` — GET endpoint returning the voice manifest from `prompts/voices/manifest.json`
+- `api/config.ts` — GET endpoint returning provider/model info
+
+**`src/middleware.ts`** — Basic Auth middleware (requires `BASIC_AUTH_USER` + `BASIC_AUTH_PASSWORD` env vars)
+
+**`src/components/`** — Lit web components for the interactive UI:
+- `playlist-form.ts` — tabs (`role="tablist"`, arrow key nav), three form panels, voice selector, dispatches `playlist-submit` custom event
+- `playlist-results.ts` — renders markdown (via `marked` + `DOMPurify`) and track list with Last.fm links
+- `history-drawer.ts` — session history sidebar with localStorage management, list/detail views
+- `waiting-song.ts` — loading animation cycling through song quotes
+- `toast-notification.ts` — transient status messages
+- `error-dialog.ts` — error modal wrapping native `<dialog>`
+
+**`src/layouts/Base.astro`** — shared HTML shell with global CSS import
+
+**`src/lib/`** — framework-agnostic utilities:
+- `validate.ts` — input validation (pure functions returning error objects)
+- `waiting-songs.ts` — song data array for the loading animation
 
 ### Prompts
 
@@ -62,8 +83,13 @@ Three-layer pipeline: **Last.fm Client → Context Builder → LLM Harness**, wi
 
 ## Key conventions
 
-- **No build step.** TypeScript runs directly via `tsx`. Type-check with `npx tsc --noEmit`.
+- **Astro SSR for the web app.** Build with `npm run build`, start with `npm start`. Dev with `npm run dev`. Type-check with `npx astro check`.
+- **CLI has no build step.** TypeScript runs directly via `tsx`.
 - **No tests or linting.** The project has no test framework or lint config.
+- **Lit web components use decorators.** `tsconfig.json` enables `experimentalDecorators` and `useDefineForClassFields: false`.
+- **Component communication via custom events.** Components fire bubbling, composed events. The orchestrator `<script>` in `index.astro` wires events to fetch calls and passes results as properties. No framework state management.
+- **CSS custom properties pierce Shadow DOM.** Global design tokens in `src/styles/global.css` are consumed by Lit components via `var(--color-*)`.
+- **Path resolution in production.** A Vite plugin in `astro.config.mjs` rewrites `import.meta.url`-based `__dirname` patterns to `process.cwd()` so pipeline modules resolve `prompts/`, `.cache/`, and `logs/` correctly after bundling.
 - **Dependency injection.** `LastfmClient` is instantiated in `cli.ts` and passed into builders/preflights rather than imported as a singleton.
 - **stderr for status, stdout for output.** Never `console.log` status messages — use `process.stderr.write`.
 - **Preflight results are logged.** All artist confidence checks and theme translations appear in the log entry's `preflight` array, including halted runs.

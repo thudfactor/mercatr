@@ -1,47 +1,52 @@
-import { Router } from 'express';
+import type { APIRoute } from 'astro';
 import { LastfmClient } from '../../lastfm/client.js';
 import { checkArtistConfidence } from '../../llm/artistConfidence.js';
 import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 import { resolveProcessingModel } from '../../llm/provider.js';
-import { validateStringField, validateOptionalStringField } from '../validate.js';
+import { validateStringField, validateOptionalStringField } from '../../lib/validate.js';
 
-const router = Router();
+export const POST: APIRoute = async ({ request }) => {
+  const { artist, track, voice } = await request.json() as {
+    artist?: string;
+    track?: string;
+    voice?: string;
+  };
 
-router.post('/', async (req, res) => {
-  const { artist, track, voice } = req.body as { artist?: string; track?: string; voice?: string };
+  const artistErr = validateStringField(artist, 'artist');
+  if (artistErr) return Response.json({ error: artistErr.error }, { status: artistErr.status });
 
-  if (!validateStringField(artist, 'artist', res)) return;
-  if (!validateOptionalStringField(track, 'track', res)) return;
+  const trackErr = validateOptionalStringField(track, 'track');
+  if (trackErr) return Response.json({ error: trackErr.error }, { status: trackErr.status });
 
   try {
     const client = new LastfmClient({ noCache: false });
     const processingModel = resolveProcessingModel();
-    const { result } = await checkArtistConfidence(artist, client, processingModel);
+    const { result } = await checkArtistConfidence(artist!, client, processingModel);
 
     if (result.confidence === 'low') {
-      res.status(404).json({ error: result.reasoning, type: 'artist_not_found' });
-      return;
+      return Response.json(
+        { error: result.reasoning, type: 'artist_not_found' },
+        { status: 404 },
+      );
     }
 
-    const resolvedName = result.resolvedName ?? artist;
+    const resolvedName = result.resolvedName ?? artist!;
     const query = { type: 'explore' as const, artist: resolvedName, ...(track ? { track } : {}) };
     const context = await buildContext(client, query);
     const { response: raw } = await runQuery(context, { expand: false, voice });
     const { narrative, tracks, warning } = parseTracksFromResponse(raw);
     if (warning) process.stderr.write(`[explore] ${warning}\n`);
 
-    const corrected = resolvedName.toLowerCase() !== artist.toLowerCase();
-    res.json({
+    const corrected = resolvedName.toLowerCase() !== artist!.toLowerCase();
+    return Response.json({
       response: narrative,
       tracks,
       ...(corrected ? { resolvedArtist: resolvedName, originalInput: artist } : {}),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error';
-    res.status(500).json({ error: message });
+    return Response.json({ error: message }, { status: 500 });
   }
-});
-
-export default router;
+};
