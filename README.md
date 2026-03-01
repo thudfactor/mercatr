@@ -42,8 +42,17 @@ Mercatr also runs as a local web server with a browser UI that exposes all three
 
 ### Running the server
 
+For local development:
+
 ```bash
-npm run serve
+npm run dev
+```
+
+For production:
+
+```bash
+npm run build
+npm start
 ```
 
 Then open `http://localhost:3000`. The browser will prompt for a username and password (set via `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` in `.env`).
@@ -119,7 +128,8 @@ These flags work with all three commands.
 | `--verbose` | Print assembled Last.fm context to stderr |
 | `--dry-run` | Print the full interpolated prompt without calling the LLM |
 | `--no-cache` | Bypass Last.fm cache for this run |
-| `--model <model>` | Override the LLM model for this run |
+| `--model <model>` | Override the main LLM model for this run |
+| `--processing-model <model>` | Override the model used for preflights and track extraction |
 | `--template <path>` | Use a custom prompt template file |
 | `--expand` | Activate expanded genre diversity mode |
 | `--export [path]` | Export the playlist as an XSPF file |
@@ -199,7 +209,7 @@ The exported file includes a `<title>` and `<annotation>` derived from the query
 - bridge: "Bridge: Miles Davis → Aphex Twin"
 - theme: "Theme: loneliness in crowded places"
 
-Track extraction uses the same model as the main query, configurable via `ANTHROPIC_MODEL` / `OPENAI_COMPAT_MODEL` or the `--model` flag.
+Track extraction uses the processing model (`ANTHROPIC_PROCESSING_MODEL` / `--processing-model`), which falls back to the main model if unset.
 
 ## Output contract
 
@@ -286,7 +296,8 @@ ls logs/
 | `LASTFM_API_KEY` | Yes | — | Last.fm API key |
 | `LLM_PROVIDER` | No | `claude` | LLM backend: `claude` or `openai-compat` |
 | `ANTHROPIC_API_KEY` | Claude only | — | Anthropic API key |
-| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-20250514` | Model used for all LLM calls when `LLM_PROVIDER=claude` |
+| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-20250514` | Model used for playlist generation when `LLM_PROVIDER=claude` |
+| `ANTHROPIC_PROCESSING_MODEL` | No | falls back to `ANTHROPIC_MODEL` | Model used for preflights and track extraction when `LLM_PROVIDER=claude` |
 | `OPENAI_COMPAT_BASE_URL` | OpenAI-compat only | — | Base URL for OpenAI-compatible API (for example, `https://api.openai.com/v1`) |
 | `OPENAI_COMPAT_API_KEY` | OpenAI-compat only | — | API key for OpenAI-compatible API |
 | `OPENAI_COMPAT_MODEL` | OpenAI-compat only | — | Model used for all LLM calls when `LLM_PROVIDER=openai-compat` |
