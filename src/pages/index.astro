@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+
+const { csrfToken } = Astro.locals;
 ---
 
 <Base title="Mercatr">
@@ -18,6 +20,10 @@ import Footer from '../components/Footer.astro';
   <toast-notification></toast-notification>
   <error-dialog></error-dialog>
 </Base>
+
+<script is:inline define:vars={{ csrfToken }}>
+  window.__CSRF = csrfToken;
+</script>
 
 <script>
   import '../components/playlist-form.js';
@@ -43,6 +49,8 @@ import Footer from '../components/Footer.astro';
   const errorEl = document.querySelector('error-dialog') as ErrorDialog;
   const historyBtn = document.getElementById('history-btn') as HTMLButtonElement;
   const historyCount = document.getElementById('history-count')!;
+
+  const csrfToken = (window as any).__CSRF ?? '';
 
   let lastTracks: Track[] | null = null;
   let lastTitle = '';
@@ -82,7 +90,7 @@ import Footer from '../components/Footer.astro';
     try {
       const res = await fetch(`/api/${mode}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify(body),
       });
 
@@ -150,7 +158,7 @@ import Footer from '../components/Footer.astro';
     try {
       const res = await fetch('/api/xspf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ tracks, title }),
       });
 

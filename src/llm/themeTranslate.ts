@@ -23,6 +23,15 @@ export interface ThemeTranslateEntry {
   lastfmResultsReturned: number;
 }
 
+function assertThemeTranslateResult(v: unknown): asserts v is ThemeTranslateResult {
+  if (!v || typeof v !== 'object') throw new Error('Expected object');
+  const r = v as Record<string, unknown>;
+  for (const field of ['translatedTags', 'moodTerms', 'genreHints']) {
+    if (!Array.isArray(r[field])) throw new Error(`${field} must be an array`);
+  }
+  if (typeof r.originalTheme !== 'string') throw new Error('originalTheme must be a string');
+}
+
 export async function runThemeTranslation(
   theme: string,
   model?: string
@@ -43,9 +52,11 @@ export async function runThemeTranslation(
 
   let result: ThemeTranslateResult;
   try {
-    result = JSON.parse(jsonText) as ThemeTranslateResult;
-  } catch {
-    throw new Error(`Failed to parse theme-translate response: ${rawText}`);
+    const parsed: unknown = JSON.parse(jsonText);
+    assertThemeTranslateResult(parsed);
+    result = parsed;
+  } catch (err) {
+    throw new Error(`Failed to parse theme-translate response: ${err instanceof Error ? err.message : String(err)}\n\nRaw: ${rawText}`);
   }
 
   return { result };

@@ -24,6 +24,19 @@ export interface PreflightEntry {
   resolvedTo?: string;
 }
 
+function assertConfidenceResult(v: unknown): asserts v is ConfidenceResult {
+  if (!v || typeof v !== 'object') throw new Error('Expected object');
+  const r = v as Record<string, unknown>;
+  if (!['high', 'medium', 'low'].includes(r.confidence as string))
+    throw new Error(`Invalid confidence value: ${r.confidence}`);
+  if (typeof r.proceed !== 'boolean')
+    throw new Error(`Invalid proceed value: ${r.proceed}`);
+  if (r.resolvedName !== null && typeof r.resolvedName !== 'string')
+    throw new Error(`Invalid resolvedName: ${r.resolvedName}`);
+  if (!Array.isArray(r.alternativeSuggestions))
+    throw new Error('alternativeSuggestions must be an array');
+}
+
 export async function checkArtistConfidence(
   artistName: string,
   client: LastfmClient,
@@ -72,9 +85,11 @@ export async function checkArtistConfidence(
 
   let result: ConfidenceResult;
   try {
-    result = JSON.parse(jsonText) as ConfidenceResult;
-  } catch {
-    throw new Error(`Failed to parse artist confidence response: ${rawText}`);
+    const parsed: unknown = JSON.parse(jsonText);
+    assertConfidenceResult(parsed);
+    result = parsed;
+  } catch (err) {
+    throw new Error(`Failed to parse artist confidence response: ${err instanceof Error ? err.message : String(err)}\n\nRaw: ${rawText}`);
   }
 
   return { result, lastfmDataPresent };

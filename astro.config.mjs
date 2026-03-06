@@ -3,6 +3,7 @@ import node from '@astrojs/node';
 import lit from '@astrojs/lit';
 
 export default defineConfig({
+  security: { checkOrigin: true },
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   integrations: [lit()],

@@ -13,6 +13,17 @@ export interface TrackInfo {
   year: string;
 }
 
+function assertTrackInfoArray(v: unknown): asserts v is TrackInfo[] {
+  if (!Array.isArray(v)) throw new Error('Expected array');
+  for (const item of v) {
+    if (!item || typeof item !== 'object') throw new Error('Each track must be an object');
+    for (const field of ['artist', 'track']) {
+      if (typeof (item as Record<string, unknown>)[field] !== 'string')
+        throw new Error(`Track missing string field: ${field}`);
+    }
+  }
+}
+
 export async function extractTracks(
   responseText: string,
   model?: string
@@ -33,13 +44,11 @@ export async function extractTracks(
 
   let tracks: TrackInfo[];
   try {
-    tracks = JSON.parse(jsonText) as TrackInfo[];
-  } catch {
-    throw new Error(`Failed to parse track-extract response: ${rawText}`);
-  }
-
-  if (!Array.isArray(tracks)) {
-    throw new Error(`track-extract response is not an array: ${rawText}`);
+    const parsed: unknown = JSON.parse(jsonText);
+    assertTrackInfoArray(parsed);
+    tracks = parsed;
+  } catch (err) {
+    throw new Error(`Failed to parse track-extract response: ${err instanceof Error ? err.message : String(err)}\n\nRaw: ${rawText}`);
   }
 
   return tracks;
