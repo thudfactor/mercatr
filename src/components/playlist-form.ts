@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 export interface Voice {
@@ -20,6 +20,12 @@ export class PlaylistForm extends LitElement {
   @property({ type: Array }) voices: Voice[] = [];
   @state() private _activeTab: 'explore' | 'bridge' | 'theme' = 'explore';
   @state() private _loading = false;
+  @state() private _fromSong = '';
+  @state() private _toSong = '';
+
+  private get _songRequired(): boolean {
+    return this._fromSong.trim().length > 0 || this._toSong.trim().length > 0;
+  }
 
   static styles = css`
     :host { display: block; }
@@ -134,6 +140,12 @@ export class PlaylistForm extends LitElement {
     button[type="submit"]:hover:not(:disabled) { background: var(--color-border-subtle); }
     button[type="reset"]:hover { color: var(--color-text-subdued); border-color: var(--color-border-muted); }
     button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .field-hint {
+      font-size: 0.8rem;
+      color: var(--color-text-subdued);
+      margin: 0;
+    }
   `;
 
   set loading(val: boolean) {
@@ -208,14 +220,19 @@ export class PlaylistForm extends LitElement {
     const form = e.target as HTMLFormElement;
     const from = (form.querySelector('[name="from"]') as HTMLInputElement).value.trim();
     const to = (form.querySelector('[name="to"]') as HTMLInputElement).value.trim();
+    const fromSong = (form.querySelector('[name="fromSong"]') as HTMLInputElement).value.trim();
+    const toSong = (form.querySelector('[name="toSong"]') as HTMLInputElement).value.trim();
     const voice = (form.querySelector('[name="voice"]') as HTMLSelectElement).value || undefined;
+    const title = (fromSong && toSong)
+      ? `${from}: \u201c${fromSong}\u201d \u2192 ${to}: \u201c${toSong}\u201d`
+      : `${from} \u2192 ${to}`;
     this.dispatchEvent(new CustomEvent<PlaylistSubmitDetail>('playlist-submit', {
       bubbles: true,
       composed: true,
       detail: {
         mode: 'bridge',
-        body: { from, to, ...(voice ? { voice } : {}) },
-        title: `${from} \u2192 ${to}`,
+        body: { from, to, ...(fromSong ? { fromSong } : {}), ...(toSong ? { toSong } : {}), ...(voice ? { voice } : {}) },
+        title,
         sessionInputs: { artistFrom: from, artistTo: to },
         sessionMode: 'transition',
       },
@@ -242,6 +259,8 @@ export class PlaylistForm extends LitElement {
   }
 
   private _onReset() {
+    this._fromSong = '';
+    this._toSong = '';
     this.dispatchEvent(new CustomEvent('form-reset', { bubbles: true, composed: true }));
   }
 
@@ -282,9 +301,40 @@ export class PlaylistForm extends LitElement {
             <input type="text" id="bridge-from" name="from" placeholder="e.g. Nick Drake" maxlength="200" required>
           </div>
           <div class="field">
+            <label for="bridge-from-song">From song ${this._songRequired ? '' : html`<span class="optional">(optional)</span>`}</label>
+            <input
+              type="text"
+              id="bridge-from-song"
+              name="fromSong"
+              placeholder="e.g. Pink Moon"
+              maxlength="200"
+              ?required=${this._songRequired}
+              aria-required=${this._songRequired ? 'true' : 'false'}
+              aria-describedby=${this._songRequired ? 'bridge-song-hint' : nothing}
+              .value=${this._fromSong}
+              @input=${(e: InputEvent) => { this._fromSong = (e.target as HTMLInputElement).value; }}
+            >
+          </div>
+          <div class="field">
             <label for="bridge-to">To artist</label>
             <input type="text" id="bridge-to" name="to" placeholder="e.g. Frank Ocean" maxlength="200" required>
           </div>
+          <div class="field">
+            <label for="bridge-to-song">To song ${this._songRequired ? '' : html`<span class="optional">(optional)</span>`}</label>
+            <input
+              type="text"
+              id="bridge-to-song"
+              name="toSong"
+              placeholder="e.g. Nights"
+              maxlength="200"
+              ?required=${this._songRequired}
+              aria-required=${this._songRequired ? 'true' : 'false'}
+              aria-describedby=${this._songRequired ? 'bridge-song-hint' : nothing}
+              .value=${this._toSong}
+              @input=${(e: InputEvent) => { this._toSong = (e.target as HTMLInputElement).value; }}
+            >
+          </div>
+          ${this._songRequired ? html`<p id="bridge-song-hint" class="field-hint">Both song fields are required when either is filled.</p>` : nothing}
           ${this._voiceSelect()}
           ${this._formActions()}
         </form>

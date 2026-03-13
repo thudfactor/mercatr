@@ -48,8 +48,11 @@ function buildQueryString(context: BuiltContext): string {
       return query.track
         ? `Explore the song "${query.track}" by ${query.artist}`
         : `Explore the artist ${query.artist}`;
-    case 'bridge':
-      return `Find thematic bridges between ${query.fromArtist} and ${query.toArtist}`;
+    case 'bridge': {
+      const from = query.fromSong ? `${query.fromArtist}'s "${query.fromSong}"` : query.fromArtist;
+      const to   = query.toSong   ? `${query.toArtist}'s "${query.toSong}"`     : query.toArtist;
+      return `Find thematic bridges between ${from} and ${to}`;
+    }
     case 'theme':
       return query.seedArtist
         ? `Build a thematic playlist around "${query.theme}", grounded in the world of ${query.seedArtist}`
@@ -63,7 +66,8 @@ export async function runQuery(
 ): Promise<HarnessResult> {
   const { model } = resolveLlmSettings({ model: options.model });
   const expand = options.expand ?? false;
-  const templatePath = options.templatePath ?? defaultTemplatePath(context.queryType);
+  const isSongBridge = context.query.type === 'bridge' && context.query.fromSong && context.query.toSong;
+  const templatePath = options.templatePath ?? defaultTemplatePath(isSongBridge ? 'bridge-song' : context.queryType);
   const template = loadTemplate(templatePath);
 
   const queryString = buildQueryString(context);

@@ -10,6 +10,8 @@ export interface BridgeQuery {
   type: 'bridge';
   fromArtist: string;
   toArtist: string;
+  fromSong?: string;
+  toSong?: string;
 }
 
 export interface ThemeQuery {

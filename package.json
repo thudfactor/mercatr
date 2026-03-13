@@ -5,10 +5,10 @@
   "type": "module",
   "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "node --import=dotenv/config node_modules/.bin/astro dev",
     "build": "astro build",
     "start": "node --import=dotenv/config dist/server/entry.mjs",
-    "serve": "astro dev",
+    "serve": "node --import=dotenv/config node_modules/.bin/astro dev",
     "cli": "tsx src/cli.ts",
     "deploy": "railway up"
   },

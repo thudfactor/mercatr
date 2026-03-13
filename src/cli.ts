@@ -62,13 +62,21 @@ const bridgeCmd = addSharedFlags(
     .description('Find thematic connections between two artists')
     .requiredOption('--from <artist>', 'First artist')
     .requiredOption('--to <artist>', 'Second artist')
+    .option('--from-song <song>', 'Specific song by first artist (requires --to-song)')
+    .option('--to-song <song>', 'Specific song by second artist (requires --from-song)')
 );
 
 bridgeCmd.action(async (options) => {
+  if (Boolean(options.fromSong) !== Boolean(options.toSong)) {
+    process.stderr.write('Error: --from-song and --to-song must be used together\n');
+    process.exit(1);
+  }
   await run(options, {
     type: 'bridge',
     fromArtist: options.from,
     toArtist: options.to,
+    ...(options.fromSong ? { fromSong: options.fromSong } : {}),
+    ...(options.toSong   ? { toSong: options.toSong }     : {}),
   });
 });
 
@@ -91,7 +99,7 @@ themeCmd.action(async (options) => {
 
 type QueryInput =
   | { type: 'explore'; artist: string; track?: string }
-  | { type: 'bridge'; fromArtist: string; toArtist: string }
+  | { type: 'bridge'; fromArtist: string; toArtist: string; fromSong?: string; toSong?: string }
   | { type: 'theme'; theme: string; seedArtist?: string };
 
 function askUser(question: string): Promise<string> {
@@ -230,8 +238,8 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
         logResponse({ timestamp: new Date().toISOString(), queryType: mutableQuery.type, preflight, halted: true });
         process.exit(1);
       }
-      (mutableQuery as { type: 'bridge'; fromArtist: string; toArtist: string }).fromArtist = fromResolved.resolvedName;
-      (mutableQuery as { type: 'bridge'; fromArtist: string; toArtist: string }).toArtist = toResolved.resolvedName;
+      (mutableQuery as { type: 'bridge'; fromArtist: string; toArtist: string; fromSong?: string; toSong?: string }).fromArtist = fromResolved.resolvedName;
+      (mutableQuery as { type: 'bridge'; fromArtist: string; toArtist: string; fromSong?: string; toSong?: string }).toArtist = toResolved.resolvedName;
     }
 
     if (mutableQuery.type === 'theme' && mutableQuery.seedArtist) {
@@ -317,7 +325,9 @@ async function run(options: Record<string, unknown>, queryInput: QueryInput): Pr
               : `Exploring ${mutableQuery.artist}`;
             break;
           case 'bridge':
-            title = `Bridge: ${mutableQuery.fromArtist} → ${mutableQuery.toArtist}`;
+            title = (mutableQuery.fromSong && mutableQuery.toSong)
+              ? `Bridge: ${mutableQuery.fromArtist}: "${mutableQuery.fromSong}" → ${mutableQuery.toArtist}: "${mutableQuery.toSong}"`
+              : `Bridge: ${mutableQuery.fromArtist} → ${mutableQuery.toArtist}`;
             break;
           case 'theme':
             title = `Theme: ${mutableQuery.theme}`;

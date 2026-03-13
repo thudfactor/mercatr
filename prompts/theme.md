@@ -18,6 +18,7 @@ Requirements:
 - Genuine diversity: different decades, different genres, different cultural contexts
 - Prioritize unexpected or cross-genre selections over obvious choices
 - The playlist should have an intentional arc or progression — not random order
+- Avoid tracks longer than approximately 15 minutes — each song should be something a listener can hold in their head as a distinct moment in the playlist
 {{expandModeRequirement}}
 Provide:
 1. The playlist (numbered, with artist, title, and year/decade for each song)

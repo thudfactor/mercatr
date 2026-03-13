@@ -101,7 +101,7 @@ async function buildBridgeContext(
   client: LastfmClient,
   query: Extract<Query, { type: 'bridge' }>
 ): Promise<BuiltContext> {
-  const { fromArtist, toArtist } = query;
+  const { fromArtist, toArtist, fromSong, toSong } = query;
 
   const [fromTags, fromInfo, fromSimilar, toTags, toInfo, toSimilar] = await Promise.all([
     client.getArtistTopTags(fromArtist),
@@ -110,6 +110,11 @@ async function buildBridgeContext(
     client.getArtistTopTags(toArtist),
     client.getArtistInfo(toArtist),
     client.getSimilarArtists(toArtist, 15),
+  ]);
+
+  const [fromTrackTags, toTrackTags] = await Promise.all([
+    fromSong ? client.getTrackTopTags(fromArtist, fromSong) : Promise.resolve([]),
+    toSong   ? client.getTrackTopTags(toArtist, toSong)     : Promise.resolve([]),
   ]);
 
   const normalizedFrom = normalizeTags(fromTags).map(t => t.name);
@@ -123,6 +128,9 @@ async function buildBridgeContext(
     lines.push(`Bio: ${stripHtml(fromInfo.bio.summary).slice(0, 300)}`);
   }
   lines.push(`Similar artists: ${formatSimilarArtists(fromSimilar, 8)}`);
+  if (fromSong && fromTrackTags.length > 0) {
+    lines.push(`Seed song: "${fromSong}" — tags: ${formatTags(fromTrackTags)}`);
+  }
 
   lines.push(`\n## Artist B: ${toArtist}`);
   lines.push(`Top tags: ${formatTags(toTags)}`);
@@ -130,6 +138,9 @@ async function buildBridgeContext(
     lines.push(`Bio: ${stripHtml(toInfo.bio.summary).slice(0, 300)}`);
   }
   lines.push(`Similar artists: ${formatSimilarArtists(toSimilar, 8)}`);
+  if (toSong && toTrackTags.length > 0) {
+    lines.push(`Seed song: "${toSong}" — tags: ${formatTags(toTrackTags)}`);
+  }
 
   if (overlapping.length > 0) {
     lines.push(`\n## Overlapping Tags`);
@@ -143,7 +154,9 @@ async function buildBridgeContext(
     `${fromArtist} tags: ${normalizedFrom.length}`,
     `${toArtist} tags: ${normalizedTo.length}`,
     `Overlapping tags: ${overlapping.length}`,
-  ].join(', ');
+    fromSong ? `From track tags: ${normalizeTags(fromTrackTags).length}` : null,
+    toSong   ? `To track tags: ${normalizeTags(toTrackTags).length}`   : null,
+  ].filter(Boolean).join(', ');
 
   return {
     queryType: 'bridge',

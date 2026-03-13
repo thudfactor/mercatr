@@ -24,6 +24,7 @@ For each song suggestion:
 - Name the artist, song title, and approximate year/decade
 - Explain the specific thematic or emotional connection — what do these songs share beyond surface-level genre?
 - Seek genuine diversity: different decades, different genres, different cultural contexts
+- Avoid tracks longer than approximately 15 minutes — each song should be something a listener can hold in their head as a distinct moment in the playlist
 {{expandModeRequirement}}
 Prioritize unexpected connections over obvious ones. The goal is to surface music a listener wouldn't find through algorithmic "sounds like" recommendations.
 

@@ -5,12 +5,14 @@ import { buildContext } from '../../context/builder.js';
 import { runQuery } from '../../llm/harness.js';
 import { parseTracksFromResponse } from '../../llm/parseTracksFromResponse.js';
 import { resolveProcessingModel } from '../../llm/provider.js';
-import { validateStringField } from '../../lib/validate.js';
+import { validateStringField, validateOptionalStringField } from '../../lib/validate.js';
 
 export const POST: APIRoute = async ({ request }) => {
-  const { from, to, voice } = await request.json() as {
+  const { from, to, fromSong, toSong, voice } = await request.json() as {
     from?: string;
     to?: string;
+    fromSong?: string;
+    toSong?: string;
     voice?: string;
   };
 
@@ -19,6 +21,12 @@ export const POST: APIRoute = async ({ request }) => {
 
   const toErr = validateStringField(to, 'to');
   if (toErr) return Response.json({ error: toErr.error }, { status: toErr.status });
+
+  const fromSongErr = validateOptionalStringField(fromSong, 'fromSong');
+  if (fromSongErr) return Response.json({ error: fromSongErr.error }, { status: fromSongErr.status });
+
+  const toSongErr = validateOptionalStringField(toSong, 'toSong');
+  if (toSongErr) return Response.json({ error: toSongErr.error }, { status: toSongErr.status });
 
   try {
     const client = new LastfmClient({ noCache: false });
@@ -44,7 +52,13 @@ export const POST: APIRoute = async ({ request }) => {
     const resolvedFrom = fromCheck.result.resolvedName ?? from!;
     const resolvedTo = toCheck.result.resolvedName ?? to!;
 
-    const query = { type: 'bridge' as const, fromArtist: resolvedFrom, toArtist: resolvedTo };
+    const query = {
+      type: 'bridge' as const,
+      fromArtist: resolvedFrom,
+      toArtist: resolvedTo,
+      ...(fromSong?.trim() ? { fromSong: fromSong.trim() } : {}),
+      ...(toSong?.trim()   ? { toSong: toSong.trim() }     : {}),
+    };
     const context = await buildContext(client, query);
     const { response: raw } = await runQuery(context, { expand: false, voice });
     const { narrative, tracks, warning } = parseTracksFromResponse(raw);
